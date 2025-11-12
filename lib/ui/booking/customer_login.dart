@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'service.dart';
+import 'guest_login.dart';
 
 class CustomerLoginPage extends StatefulWidget {
   const CustomerLoginPage({super.key});
@@ -151,11 +151,11 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                     // Guest Booking Button
                     TextButton(
                       onPressed: () {
-                        // Navigate to Services page for guest booking
+                        // Navigate to Guest Login page
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const ServicePage()),
+                              builder: (context) => const GuestLoginPage()),
                         );
                       },
                       child: const Text(

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:salonapp/model/booking.dart';
-import 'package:salonapp/api/api_manager.dart';
-import 'package:salonapp/constants.dart';
+import 'package:salonappweb/model/booking.dart';
+import 'package:salonappweb/api/api_manager.dart';
+import 'package:salonappweb/constants.dart';
 import 'package:intl/intl.dart';
-import 'package:salonapp/ui/common/drawer_booking.dart';
-import 'package:salonapp/ui/booking/staff.dart';
-import 'package:salonapp/services/helper.dart';
+import 'package:salonappweb/ui/common/drawer_booking.dart';
+import 'package:salonappweb/ui/booking/staff.dart';
+import 'package:salonappweb/services/helper.dart';
 import 'summary.dart'; // Import Home
 import 'package:provider/provider.dart';
-import 'package:salonapp/provider/booking.provider.dart';
-import 'package:salonapp/services/helper.dart';
+import 'package:salonappweb/provider/booking.provider.dart';
+import 'package:salonappweb/services/helper.dart';
 
 class BookingHomeScreen extends StatelessWidget {
   const BookingHomeScreen({super.key});

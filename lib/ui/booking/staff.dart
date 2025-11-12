@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
-import 'package:salonapp/api/api_manager.dart';
-import 'package:salonapp/model/staff.dart';
-import 'package:salonapp/services/helper.dart';
-import 'package:salonapp/provider/booking.provider.dart';
-import 'package:salonapp/ui/booking/calendar.dart';
-import 'package:salonapp/ui/booking/schedule___.dart';
+import 'package:salonappweb/api/api_manager.dart';
+import 'package:salonappweb/model/staff.dart';
+import 'package:salonappweb/services/helper.dart';
+import 'package:salonappweb/provider/booking.provider.dart';
+import 'package:salonappweb/ui/booking/calendar.dart';
+import 'package:salonappweb/ui/booking/schedule___.dart';
 import 'service.dart';
 import 'summary.dart';
 

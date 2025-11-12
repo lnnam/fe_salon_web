@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:salonapp/constants.dart';
-import 'package:salonapp/services/helper.dart';
-import 'package:salonapp/api/api_manager.dart';
-import 'package:salonapp/model/user.dart';
-import 'package:salonapp/main.dart';
+import 'package:salonappweb/constants.dart';
+import 'package:salonappweb/services/helper.dart';
+import 'package:salonappweb/api/api_manager.dart';
+import 'package:salonappweb/model/user.dart';
+import 'package:salonappweb/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 

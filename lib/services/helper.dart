@@ -5,14 +5,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:salonapp/constants.dart';
+import 'package:salonappweb/constants.dart';
 import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:salonapp/model/user.dart';
+import 'package:salonappweb/model/user.dart';
 
 import 'dart:io' show Platform;
-
-
 
 String? validateFeild(String? value) {
   if (value?.isEmpty ?? true) {
@@ -71,6 +69,19 @@ String? validateEmail(String? value) {
   } else {
     return null;
   }
+}
+
+bool isValidEmail(String email) {
+  String pattern =
+      r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$';
+  RegExp regex = RegExp(pattern);
+  return regex.hasMatch(email);
+}
+
+bool isValidPhone(String phone) {
+  String pattern = r'(^\+?[0-9]*$)';
+  RegExp regExp = RegExp(pattern);
+  return regExp.hasMatch(phone) && phone.isNotEmpty;
 }
 
 String? validateConfirmPassword(String? password, String? confirmPassword) {
@@ -159,12 +170,11 @@ showAlertDialog(BuildContext context, String title, String content) {
 }
 
 myPopup(context, txt) {
-   showDialog(
-                  context: context,
-                  builder: (ctxt) =>  AlertDialog(
-                    title: Text(txt),
-                  )
-              );
+  showDialog(
+      context: context,
+      builder: (ctxt) => AlertDialog(
+            title: Text(txt),
+          ));
 }
 
 pushReplacement(BuildContext context, Widget destination) {
@@ -301,32 +311,31 @@ String audioMessageTime(Duration? audioDuration) {
   return '${twoDigitsHours(audioDuration?.inHours ?? 0)}$twoDigitMinutes:$twoDigitSeconds';
 }
 
- logout(BuildContext context) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-   // Navigator.popUntil(context, ModalRoute.withName('/'));
-    Navigator.pushReplacementNamed(context, '/login');
-  }
-
+logout(BuildContext context) async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.clear();
+  // Navigator.popUntil(context, ModalRoute.withName('/'));
+  Navigator.pushReplacementNamed(context, '/login');
+}
 
 Future<User> getCurrentUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userData = prefs.getString('objuser') ?? '{}';
-    final userJson = json.decode(userData);
-    return User.fromJson(userJson);
-  }
+  final prefs = await SharedPreferences.getInstance();
+  final userData = prefs.getString('objuser') ?? '{}';
+  final userJson = json.decode(userData);
+  return User.fromJson(userJson);
+}
 
 ImageProvider? getImage(String base64String) {
-    try {
-      return MemoryImage(
-        base64Decode(
-          base64String.split(',').last,
-        ),
-      );
-    } catch (e) {
-      return null; // Return null if there's an error
-    }
+  try {
+    return MemoryImage(
+      base64Decode(
+        base64String.split(',').last,
+      ),
+    );
+  } catch (e) {
+    return null; // Return null if there's an error
   }
+}
 
 String formatBookingTime(dynamic bookingTime) {
   try {
@@ -334,7 +343,8 @@ String formatBookingTime(dynamic bookingTime) {
       return DateFormat('HH:mm').format(bookingTime);
     } else if (bookingTime is String && bookingTime.isNotEmpty) {
       try {
-        return DateFormat('HH:mm').format(DateFormat('HH:mm').parse(bookingTime));
+        return DateFormat('HH:mm')
+            .format(DateFormat('HH:mm').parse(bookingTime));
       } catch (_) {
         return DateFormat('HH:mm').format(DateTime.parse(bookingTime));
       }

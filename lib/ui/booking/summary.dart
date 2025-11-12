@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:salonapp/api/api_manager.dart';
-import 'package:salonapp/services/helper.dart';
+import 'package:salonappweb/api/api_manager.dart';
+import 'package:salonappweb/services/helper.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:salonapp/model/booking.dart';
-import 'package:salonapp/provider/booking.provider.dart';
+import 'package:salonappweb/model/booking.dart';
+import 'package:salonappweb/provider/booking.provider.dart';
 
 import 'home.dart';
 import 'calendar.dart'; // ⬅️ Replace with actual path
@@ -35,6 +35,8 @@ class _SummaryPageState extends State<SummaryPage> {
   late String staffName;
   late String serviceName;
   late int bookingkey;
+  late String customerEmail;
+  late String customerPhone;
   late TextEditingController noteController;
 
   @override
@@ -73,6 +75,8 @@ class _SummaryPageState extends State<SummaryPage> {
       staffName = booking.staffname;
       serviceName = booking.servicename;
       note = booking.note;
+      customerEmail = '';  // Default for existing bookings
+      customerPhone = '';  // Default for existing bookings
       bookingProvider.setBookingKey(bookingkey); // ✅ Added here
       bookingProvider.setBookingFromModel(booking);
     } else {
@@ -92,6 +96,8 @@ class _SummaryPageState extends State<SummaryPage> {
       staffName = bookingDetails['staffname'] ?? 'Unknown';
       serviceName = bookingDetails['servicename'] ?? 'Unknown';
       note = bookingDetails['note'] ?? '';
+      customerEmail = bookingDetails['guestemail'] ?? '';
+      customerPhone = bookingDetails['guestphone'] ?? '';
       noteController = TextEditingController(text: note);
     }
 
@@ -195,15 +201,7 @@ class _SummaryPageState extends State<SummaryPage> {
                   MaterialPageRoute(
                       builder: (_) => const BookingCalendarPage())),
             ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              context,
-              label: 'Customer Name',
-              value: customerName,
-              icon: Icons.person,
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const CustomerPage())),
-            ),
+          
             const SizedBox(height: 12),
             _buildInfoRow(
               context,
@@ -272,6 +270,8 @@ class _SummaryPageState extends State<SummaryPage> {
                             customerName,
                             staffName,
                             serviceName,
+                            customerEmail,
+                            customerPhone,
                           ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,

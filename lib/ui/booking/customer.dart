@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:salonapp/api/api_manager.dart';
-import 'package:salonapp/model/customer.dart';
-import 'package:salonapp/provider/booking.provider.dart';
-import 'package:salonapp/services/helper.dart';
+import 'package:salonappweb/api/api_manager.dart';
+import 'package:salonappweb/model/customer.dart';
+import 'package:salonappweb/provider/booking.provider.dart';
+import 'package:salonappweb/services/helper.dart';
 import 'Summary.dart';
 
 class CustomerPage extends StatefulWidget {

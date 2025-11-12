@@ -47,21 +47,24 @@ class Booking {
       formattedBookingDate = DateFormat('yyyy-MM-dd').format(bookingDateTime);
       formattedBookingTime = DateFormat('HH:mm').format(bookingDateTime);
     } else {
-      bookingDateTime = json['dateactivated'] != null && json['dateactivated'] != ''
-          ? DateTime.parse(json['dateactivated'])
-          : DateTime.now();
+      bookingDateTime =
+          json['dateactivated'] != null && json['dateactivated'] != ''
+              ? DateTime.parse(json['dateactivated'])
+              : DateTime.now();
       formattedBookingDate = DateFormat('yyyy-MM-dd').format(bookingDateTime);
       formattedBookingTime = '';
     }
 
-    DateTime createdDateTime = json['dateactivated'] != null && json['dateactivated'] != ''
-        ? DateTime.parse(json['dateactivated'])
-        : DateTime.now();
+    DateTime createdDateTime =
+        json['dateactivated'] != null && json['dateactivated'] != ''
+            ? DateTime.parse(json['dateactivated'])
+            : DateTime.now();
 
     return Booking(
       pkey: json['pkey'] is int
           ? json['pkey']
-          : int.tryParse(json['pkey']?.toString() ?? '') ?? 0, // <-- Parse as int
+          : int.tryParse(json['pkey']?.toString() ?? '') ??
+              0, // <-- Parse as int
       customername: json['customername'] ?? 'Unknown',
       customerkey: json['customerkey']?.toString() ?? 'Unknown',
       staffkey: json['staffkey']?.toString() ?? 'Unknown',
@@ -91,8 +94,10 @@ class OnBooking {
   Map<String, dynamic>? service;
   Map<String, dynamic>? schedule;
   bool editMode;
-  String note ;
-  int bookingkey ;
+  String note;
+  int bookingkey;
+  String guestemail;
+  String guestphone;
 
   OnBooking({
     this.staff,
@@ -102,6 +107,7 @@ class OnBooking {
     this.editMode = false, // default to false
     this.note = '',
     this.bookingkey = 0,
+    this.guestemail = '',
+    this.guestphone = '',
   });
 }
-

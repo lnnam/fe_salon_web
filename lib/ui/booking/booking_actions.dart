@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:salonapp/api/api_manager.dart';
-import 'package:salonapp/services/helper.dart';
+import 'package:salonappweb/api/api_manager.dart';
+import 'package:salonappweb/services/helper.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'home.dart';
 
@@ -17,6 +17,8 @@ Future<void> saveBooking(
   String customerName,
   String staffName,
   String serviceName,
+  String customerEmail,
+  String customerPhone,
 ) async {
   setLoading(true);
 
@@ -31,6 +33,8 @@ Future<void> saveBooking(
   'customerName': customerName,
   'staffName': staffName,
   'serviceName': serviceName,
+  'customerEmail': customerEmail,
+  'customerPhone': customerPhone,
 });
 
   final result = await apiManager.SaveBooking(
@@ -44,6 +48,8 @@ Future<void> saveBooking(
     customerName,
     staffName,
     serviceName,
+    customerEmail,
+    customerPhone,
   );
 
   setLoading(false);

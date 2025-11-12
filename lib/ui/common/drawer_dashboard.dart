@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:salonapp/services/helper.dart';
-import 'package:salonapp/constants.dart';
+import 'package:salonappweb/services/helper.dart';
+import 'package:salonappweb/constants.dart';
 
 
 class AppDrawerDashboard extends StatelessWidget {

@@ -1,25 +1,23 @@
-import 'package:salonapp/ui/booking/customer_login.dart';
+import 'package:salonappweb/ui/booking/customer_login.dart';
 
 import 'constants.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:salonapp/ui/login.dart';
-import 'package:salonapp/ui/dashboard.dart';
-import 'package:salonapp/model/user.dart';
+import 'package:salonappweb/ui/login.dart';
+import 'package:salonappweb/ui/dashboard.dart';
+import 'package:salonappweb/model/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:salonapp/ui/pos/home.dart';
-import 'package:salonapp/ui/booking/home.dart';
-import 'package:salonapp/ui/booking/staff.dart';
-import 'package:salonapp/ui/booking/service.dart';
+import 'package:salonappweb/ui/pos/home.dart';
+import 'package:salonappweb/ui/booking/home.dart';
+import 'package:salonappweb/ui/booking/staff.dart';
+import 'package:salonappweb/ui/booking/service.dart';
 import 'package:flutter/rendering.dart';
-import 'package:salonapp/provider/booking.provider.dart';
+import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:provider/provider.dart';
 
-
- void main() async {
-    debugPaintBaselinesEnabled = true; // Enable debug paint
-
+void main() async {
+  debugPaintBaselinesEnabled = true; // Enable debug paint
 
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
@@ -28,18 +26,18 @@ import 'package:provider/provider.dart';
 
   runApp(
     EasyLocalization(
-        supportedLocales: const [Locale('en'), Locale('vn')],
-        path: 'assets/translations',
-        fallbackLocale: const Locale('en'),
-        useFallbackTranslations: true,
-        useOnlyLangCode: true,
-        child: ChangeNotifierProvider(
+      supportedLocales: const [Locale('en'), Locale('vn')],
+      path: 'assets/translations',
+      fallbackLocale: const Locale('en'),
+      useFallbackTranslations: true,
+      useOnlyLangCode: true,
+      child: ChangeNotifierProvider(
         create: (context) => BookingProvider(),
         child: const MyApp(),
-      ),),
+      ),
+    ),
   );
-} 
-
+}
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -50,7 +48,7 @@ class MyApp extends StatefulWidget {
 
 class MyAppState extends State<MyApp> with WidgetsBindingObserver {
   static User? currentUser;
- // static Future<User> currentUser;
+  // static Future<User> currentUser;
 
   @override
   void initState() {
@@ -62,11 +60,9 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final user = await _getUserInfo();
     setState(() {
       currentUser = user;
-          print('Current user: $currentUser');
-
+      print('Current user: $currentUser');
     });
   }
-
 
   Future<User> _getUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
@@ -81,22 +77,20 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
     return MaterialApp(
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
-      title: 'BEAUTY SALON APP',
+      title: 'SALON APP WEB',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
         scaffoldBackgroundColor: Colors.white,
-       
         appBarTheme: AppBarTheme(
           color: color, // Set default app bar background color
           iconTheme: const IconThemeData(color: Colors.white),
-         titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
-        fontFamily: 'OpenSans',
-        fontSize: 20,
-        color: Colors.white,
-      ),
+          titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontFamily: 'OpenSans',
+                fontSize: 20,
+                color: Colors.white,
+              ),
         ),
-        
       ),
       // home: AuthChecker(),
       initialRoute: '/',

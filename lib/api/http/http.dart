@@ -1,12 +1,12 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:salonapp/config/app_config.dart';
-import 'package:salonapp/model/user.dart';
-import 'package:salonapp/model/booking.dart';
-import 'package:salonapp/model/staff.dart';
-import 'package:salonapp/model/service.dart';
-import 'package:salonapp/model/customer.dart';
-import 'package:salonapp/services/helper.dart';
+import 'package:salonappweb/config/app_config.dart';
+import 'package:salonappweb/model/user.dart';
+import 'package:salonappweb/model/booking.dart';
+import 'package:salonappweb/model/staff.dart';
+import 'package:salonappweb/model/service.dart';
+import 'package:salonappweb/model/customer.dart';
+import 'package:salonappweb/services/helper.dart';
 
 class MyHttp {
   /// @param username user salonkey
@@ -136,28 +136,43 @@ class MyHttp {
     String customerName,
     String staffName,
     String serviceName,
+    String customerEmail,
+    String customerPhone,
   ) async {
     //  print('url test: ${AppConfig.api_url_booking_add}');
     try {
+      final bookingData = <String, String>{
+        'bookingkey': bookingKey.toString(),
+        'customerkey': customerKey,
+        'servicekey': serviceKey,
+        'staffkey': staffKey,
+        'date': date,
+        'datetime': schedule,
+        'note': note,
+        'customername': customerName,
+        'staffname': staffName,
+        'servicename': serviceName,
+        'customeremail': customerEmail,
+        'customerphone': customerPhone,
+        'userkey': '1',
+      };
+
+      print('=== SUBMITTING BOOKING ===');
+      print('URL: ${AppConfig.api_url_bookingweb_save}');
+      print('Data being posted:');
+      print(jsonEncode(bookingData));
+      print('========================');
+
       final response = await http.post(
-        Uri.parse(AppConfig.api_url_booking_save),
+        Uri.parse(AppConfig.api_url_bookingweb_save),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
-        body: jsonEncode(<String, String>{
-          'bookingkey': bookingKey.toString(),
-          'customerkey': customerKey,
-          'servicekey': serviceKey,
-          'staffkey': staffKey,
-          'date': date,
-          'datetime': schedule,
-          'note': note,
-          'customername': customerName,
-          'staffname': staffName,
-          'servicename': serviceName,
-          'userkey': '1',
-        }),
+        body: jsonEncode(bookingData),
       );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 201) {
         return User.fromJson(jsonDecode(response.body));
@@ -166,6 +181,7 @@ class MyHttp {
         print('Error: ${response.statusCode}, Response: ${response.body}');
       }
     } catch (e) {
+      print('Exception during SaveBooking: $e');
       return e; // Return error for debugging
     }
   }

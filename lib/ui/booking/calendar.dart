@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:salonapp/provider/booking.provider.dart';
+import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:booking_calendar/booking_calendar.dart';
-import 'package:salonapp/constants.dart';
+import 'package:salonappweb/constants.dart';
 import 'customer.dart'; // Import SchedulePage
 import 'summary.dart';
-import 'package:salonapp/api/api_manager.dart';
-import 'package:salonapp/ui/booking/customer_login.dart';
+import 'package:salonappweb/api/api_manager.dart';
 
 class BookingCalendarPage extends StatefulWidget {
   const BookingCalendarPage({super.key});
@@ -59,21 +58,11 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
                             );
                           } */
 
-    final bookingProvider =
-        Provider.of<BookingProvider>(context, listen: false);
-    final isEditMode = bookingProvider.onbooking?.editMode ?? false;
-
-    if (isEditMode) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const SummaryPage()),
-      );
-    } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const CustomerLoginPage()),
-      );
-    }
+    // Navigate to Summary page after scheduling
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SummaryPage()),
+    );
   }
 
 /* List<DateTimeRange> convertStreamResultMock({required dynamic streamResult}) {

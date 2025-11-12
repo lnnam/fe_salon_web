@@ -4,13 +4,23 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
-
         {
-            "type": "dart",
+            "name": "Chrome",
             "request": "launch",
-            "name": "Launch Chrome against localhost",
-            "webRoot": "${workspaceFolder}"
+            "type": "dart",
+            "args": [
+                "-d",
+                "chrome"
+            ]
+        },
+        {
+            "name": "macOS",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "-d",
+                "macos"
+            ]
         }
     ]
 }
