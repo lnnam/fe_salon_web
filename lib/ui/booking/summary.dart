@@ -47,6 +47,7 @@ class _SummaryPageState extends State<SummaryPage> {
     super.dispose();
   }
 
+  @override
   void initState() {
     super.initState();
     final bookingProvider =
@@ -142,7 +143,7 @@ class _SummaryPageState extends State<SummaryPage> {
       if (success) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const BookingHomeScreen()),
+          MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
           (route) => false,
         );
       } else {
@@ -179,7 +180,7 @@ class _SummaryPageState extends State<SummaryPage> {
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const BookingHomeScreen()),
+                          builder: (_) => const CustomerHomeScreen()),
                       (route) => false,
                     );
                   },

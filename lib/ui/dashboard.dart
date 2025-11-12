@@ -1,15 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:salonappweb/constants.dart';
-import 'package:salonappweb/services/helper.dart';
-import 'package:salonappweb/api/api_manager.dart';
-import 'package:salonappweb/model/user.dart';
 import 'package:salonappweb/main.dart';
 import 'package:salonappweb/ui/common/drawer_dashboard.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:salonappweb/constants.dart';
-import 'package:salonappweb/ui/booking/home.dart';
 
 
 class Dashboard extends StatelessWidget {

@@ -10,8 +10,6 @@ import 'package:salonappweb/model/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:salonappweb/ui/pos/home.dart';
 import 'package:salonappweb/ui/booking/home.dart';
-import 'package:salonappweb/ui/booking/staff.dart';
-import 'package:salonappweb/ui/booking/service.dart';
 import 'package:flutter/rendering.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:provider/provider.dart';
@@ -83,7 +81,7 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
         useMaterial3: true,
         scaffoldBackgroundColor: Colors.white,
         appBarTheme: AppBarTheme(
-          color: color, // Set default app bar background color
+          backgroundColor: color, // Set default app bar background color
           iconTheme: const IconThemeData(color: Colors.white),
           titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontFamily: 'OpenSans',
@@ -97,7 +95,7 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
       routes: {
         '/': (context) => const CustomerLoginPage(),
         '/dashboard': (context) => const AuthChecker(),
-        '/booking': (context) => const BookingHomeScreen(),
+        '/booking': (context) => const CustomerHomeScreen(),
         '/pos': (context) => const SaleScreen(),
         '/checkin': (context) => const CheckInScreen(),
         '/checkout': (context) => const CheckOutScreen(),

@@ -74,7 +74,7 @@ class StaffPage extends StatelessWidget {
                               context,
                               listen: false);
                           final isEditMode =
-                              bookingProvider.onbooking?.editMode ?? false;
+                              bookingProvider.onbooking.editMode ?? false;
 
                           // Set staff
                           bookingProvider.setStaff(staff.toJson());

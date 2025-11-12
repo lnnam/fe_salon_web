@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:booking_calendar/booking_calendar.dart';
 import 'package:salonappweb/constants.dart';
-import 'customer.dart'; // Import SchedulePage
+// Import SchedulePage
 import 'summary.dart';
 import 'package:salonappweb/api/api_manager.dart';
 

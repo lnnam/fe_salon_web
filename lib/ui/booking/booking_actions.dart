@@ -69,7 +69,7 @@ Future<void> saveBooking(
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const BookingHomeScreen()),
+                        builder: (context) => const CustomerHomeScreen()),
                   );
                 },
                 child: const Text("OK"),
@@ -126,7 +126,7 @@ Future<void> deleteBookingAction(
     if (success) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const BookingHomeScreen()),
+        MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
         (route) => false,
       );
     } else {
