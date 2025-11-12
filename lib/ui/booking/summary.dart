@@ -63,8 +63,8 @@ class _SummaryPageState extends State<SummaryPage> {
       print('widget');
 
       final booking = widget.booking!;
-     // print('Booking from widget: ${booking.toJson()}');
-     
+      // print('Booking from widget: ${booking.toJson()}');
+
       bookingkey = booking.pkey;
       customerKey = booking.customerkey;
       serviceKey = booking.servicekey;
@@ -75,8 +75,8 @@ class _SummaryPageState extends State<SummaryPage> {
       staffName = booking.staffname;
       serviceName = booking.servicename;
       note = booking.note;
-      customerEmail = '';  // Default for existing bookings
-      customerPhone = '';  // Default for existing bookings
+      customerEmail = ''; // Default for existing bookings
+      customerPhone = ''; // Default for existing bookings
       bookingProvider.setBookingKey(bookingkey); // ✅ Added here
       bookingProvider.setBookingFromModel(booking);
     } else {
@@ -201,7 +201,6 @@ class _SummaryPageState extends State<SummaryPage> {
                   MaterialPageRoute(
                       builder: (_) => const BookingCalendarPage())),
             ),
-          
             const SizedBox(height: 12),
             _buildInfoRow(
               context,

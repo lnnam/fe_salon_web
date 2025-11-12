@@ -23,19 +23,19 @@ Future<void> saveBooking(
   setLoading(true);
 
   print({
-  'bookingKey': bookingKey,
-  'customerKey': customerKey,
-  'serviceKey': serviceKey,
-  'staffKey': staffKey,
-  'bookingDate': bookingDate,
-  'bookingTime': bookingTime,
-  'note': note,
-  'customerName': customerName,
-  'staffName': staffName,
-  'serviceName': serviceName,
-  'customerEmail': customerEmail,
-  'customerPhone': customerPhone,
-});
+    'bookingKey': bookingKey,
+    'customerKey': customerKey,
+    'serviceKey': serviceKey,
+    'staffKey': staffKey,
+    'bookingDate': bookingDate,
+    'bookingTime': bookingTime,
+    'note': note,
+    'customerName': customerName,
+    'staffName': staffName,
+    'serviceName': serviceName,
+    'customerEmail': customerEmail,
+    'customerPhone': customerPhone,
+  });
 
   final result = await apiManager.SaveBooking(
     bookingKey,
@@ -79,14 +79,13 @@ Future<void> saveBooking(
         );
       },
     );
-      setLoading(false);
-
+    setLoading(false);
   } else {
     showAlertDialog(
-        context,
-        'Error : '.tr(),
-        'Booking not saved. Contact support!'.tr(),
-      );
+      context,
+      'Error : '.tr(),
+      'Booking not saved. Contact support!'.tr(),
+    );
   }
 }
 
