@@ -21,28 +21,96 @@ class CustomerHomeScreen extends StatefulWidget {
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Customer? _currentCustomer;
+  late Future<List<Booking>> _bookingsFuture;
 
   @override
   void initState() {
     super.initState();
     _loadCustomerInfo();
+    _bookingsFuture = apiManager.ListBookingsSmart();
   }
 
   Future<void> _loadCustomerInfo() async {
-    // Load customer info from current user
-    final user = MyAppState.currentUser;
-    if (user != null) {
-      // In a real scenario, fetch customer details from API
-      // For now, create a temporary customer from user data
-      setState(() {
-        _currentCustomer = Customer(
-          customerkey: int.tryParse(user.userkey) ?? 0,
-          fullname: user.username,
-          email: user.email,
-          phone: '', // Would come from API
-          photo: user.profilephoto,
-        );
-      });
+    try {
+      print('=== _loadCustomerInfo START ===');
+
+      // First check if customer profile was already loaded at app startup
+      if (MyAppState.customerProfile != null) {
+        print('✓ Using preloaded customer profile from MyAppState');
+        final profileData = MyAppState.customerProfile!;
+        setState(() {
+          if (profileData.containsKey('pkey') ||
+              profileData.containsKey('photobase64')) {
+            _currentCustomer = Customer.fromJson(profileData);
+            print('✓ Created customer using fromJson');
+          } else {
+            _currentCustomer = Customer(
+              customerkey: profileData['customerkey'] ?? 0,
+              fullname: profileData['fullname'] ?? 'Guest',
+              email: profileData['email'] ?? '',
+              phone: profileData['phone'] ?? '',
+              photo: profileData['photo'] ?? '',
+            );
+            print('✓ Created customer using direct mapping');
+          }
+          print(
+              'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}');
+        });
+        print('=== _loadCustomerInfo END (Preloaded) ===');
+        return;
+      }
+
+      // If not preloaded, fetch from API
+      final profileData = await apiManager.fetchCustomerProfile();
+
+      if (profileData != null) {
+        print('✓ Loaded customer profile from API: $profileData');
+        setState(() {
+          // Use Customer.fromJson if the backend sends pkey/photobase64
+          // Otherwise map directly
+          if (profileData.containsKey('pkey') ||
+              profileData.containsKey('photobase64')) {
+            _currentCustomer = Customer.fromJson(profileData);
+            print('✓ Created customer using fromJson');
+          } else {
+            _currentCustomer = Customer(
+              customerkey: profileData['customerkey'] ?? 0,
+              fullname: profileData['fullname'] ?? 'Guest',
+              email: profileData['email'] ?? '',
+              phone: profileData['phone'] ?? '',
+              photo: profileData['photo'] ?? '',
+            );
+            print('✓ Created customer using direct mapping');
+          }
+          print(
+              'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}');
+        });
+        print('=== _loadCustomerInfo END (API) ===');
+        return;
+      }
+
+      // Fallback to admin user
+      print('No customer profile from API, checking admin user...');
+      final user = MyAppState.currentUser;
+      if (user != null) {
+        print('✓ Loading customer info from admin user: ${user.username}');
+        setState(() {
+          _currentCustomer = Customer(
+            customerkey: int.tryParse(user.userkey) ?? 0,
+            fullname: user.username,
+            email: user.email,
+            phone: '',
+            photo: user.profilephoto,
+          );
+        });
+        print('=== _loadCustomerInfo END (Admin) ===');
+      } else {
+        print('✗ No admin user found either!');
+        print('=== _loadCustomerInfo END (No Data) ===');
+      }
+    } catch (e) {
+      print('✗ Error loading customer info: $e');
+      print('=== _loadCustomerInfo END (Error) ===');
     }
   }
 
@@ -58,7 +126,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       body: Center(
         child: SingleChildScrollView(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 40.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 32.0, vertical: 40.0),
             constraints: const BoxConstraints(maxWidth: 800),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -119,124 +188,112 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       );
     }
 
-    ImageProvider imageProvider;
-    try {
-      imageProvider = getImage(_currentCustomer!.photo) ??
-          const AssetImage('assets/default_avatar.png');
-    } catch (e) {
-      imageProvider = const AssetImage('assets/default_avatar.png');
-    }
-
     return Column(
       children: [
         // Title
         const Text(
           'My Profile',
           style: TextStyle(
-            fontSize: 28,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.blue,
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 12),
         // Profile Card
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.grey[300]!),
             boxShadow: [
               BoxShadow(
                 color: Colors.grey.withOpacity(0.1),
                 spreadRadius: 1,
-                blurRadius: 5,
-                offset: const Offset(0, 2),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
           child: Column(
             children: [
-              CircleAvatar(
-                radius: 50,
-                backgroundImage: imageProvider,
-                child: imageProvider is AssetImage
-                    ? const Icon(Icons.person, size: 50)
-                    : null,
-              ),
-              const SizedBox(height: 16),
               Text(
                 _currentCustomer!.fullname,
                 style: const TextStyle(
-                  fontSize: 24,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               // Email
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: Colors.grey[300]!),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.email, size: 20, color: Colors.grey[700]),
-                    const SizedBox(width: 12),
+                    Icon(Icons.email, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         _currentCustomer!.email,
-                        style: TextStyle(fontSize: 16, color: Colors.grey[800]),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[800]),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               // Phone
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: Colors.grey[300]!),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.phone, size: 20, color: Colors.grey[700]),
-                    const SizedBox(width: 12),
+                    Icon(Icons.phone, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        _currentCustomer!.phone.isEmpty ? 'No phone number' : _currentCustomer!.phone,
+                        _currentCustomer!.phone.isEmpty
+                            ? 'No phone number'
+                            : _currentCustomer!.phone,
                         style: TextStyle(
-                          fontSize: 16, 
-                          color: _currentCustomer!.phone.isEmpty ? Colors.grey[400] : Colors.grey[800],
+                          fontSize: 14,
+                          color: _currentCustomer!.phone.isEmpty
+                              ? Colors.grey[400]
+                              : Colors.grey[800],
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
                     _showEditProfileDialog(context);
                   },
-                  icon: const Icon(Icons.edit),
+                  icon: const Icon(Icons.edit, size: 16),
                   label: const Text('Edit Profile'),
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     backgroundColor: color,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                   ),
                 ),
@@ -262,34 +319,90 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         ),
         const SizedBox(height: 16),
         FutureBuilder<List<Booking>>(
-          future: apiManager.ListBooking(),
+          future: _bookingsFuture,
           builder: (context, snapshot) {
+            print('=== BOOKINGS FUTURE BUILDER ===');
+            print('Connection state: ${snapshot.connectionState}');
+            print('Has error: ${snapshot.hasError}');
+            print('Error: ${snapshot.error}');
+            print('Has data: ${snapshot.hasData}');
+            print('Data length: ${snapshot.data?.length}');
+
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Padding(
                 padding: EdgeInsets.all(32.0),
                 child: Center(child: CircularProgressIndicator()),
               );
             } else if (snapshot.hasError) {
+              print('✗ Error loading bookings: ${snapshot.error}');
               return Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Center(
-                  child: Text(
-                    'Error: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.red),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Error: ${snapshot.error}',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _bookingsFuture = apiManager.ListBookingsSmart();
+                          });
+                        },
+                        child: const Text('Retry'),
+                      ),
+                    ],
                   ),
                 ),
               );
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              print('✗ No bookings data');
               return _buildEmptyState();
             }
 
-            // Filter bookings for current customer
-            final customerBookings = snapshot.data!.where((booking) {
-              return _currentCustomer != null &&
-                  booking.customerkey == _currentCustomer!.customerkey;
-            }).toList();
+            print('✓ Received ${snapshot.data!.length} bookings');
+            print(
+                'Current customer key: ${_currentCustomer?.customerkey} (${_currentCustomer?.customerkey.runtimeType})');
+
+            // Log all bookings
+            for (var booking in snapshot.data!) {
+              print(
+                  'Booking: pkey=${booking.pkey}, customerkey=${booking.customerkey} (${booking.customerkey.runtimeType}), customer=${booking.customername}');
+            }
+
+            // When using customer token API, bookings are already filtered by backend
+            // No need to filter again - just use all returned bookings
+            List<Booking> customerBookings;
+
+            // Check if we need to filter (admin API returns all bookings)
+            // If customerkey is "Unknown", it means customer API already filtered
+            final needsFiltering =
+                snapshot.data!.any((b) => b.customerkey != 'Unknown');
+
+            if (needsFiltering && _currentCustomer != null) {
+              // Admin API case: filter by customerkey
+              print('Filtering bookings by customerkey (admin API)');
+              customerBookings = snapshot.data!.where((booking) {
+                final match = booking.customerkey ==
+                    _currentCustomer!.customerkey.toString();
+                print(
+                    'Comparing: booking.customerkey="${booking.customerkey}" vs customer.customerkey="${_currentCustomer!.customerkey}" => $match');
+                return match;
+              }).toList();
+            } else {
+              // Customer API case: all bookings are already for this customer
+              print(
+                  'Using all bookings (already filtered by customer token API)');
+              customerBookings = snapshot.data!;
+            }
+
+            print(
+                '✓ Final result: ${customerBookings.length} bookings to display');
 
             if (customerBookings.isEmpty) {
+              print('✗ No bookings match current customer');
               return _buildEmptyState();
             }
 
@@ -326,7 +439,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           const SizedBox(height: 16),
           Text(
             'No bookings yet',
-            style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.w600),
+            style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
@@ -341,14 +457,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   Widget _buildBookingCard(Booking booking, Color color, BuildContext context) {
     final isPast = isBookingInPast(booking);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isPast ? Colors.grey[100] : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isPast ? Colors.grey[300]! : color.withOpacity(0.3)),
+        border: Border.all(
+            color: isPast ? Colors.grey[300]! : color.withOpacity(0.3)),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
@@ -481,32 +598,42 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ),
           if (!isPast) ...[
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SummaryPage(booking: booking),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      _handleChangeBooking(booking, context);
+                    },
+                    icon: const Icon(Icons.edit, size: 18),
+                    label: const Text('Change'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: color),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: color),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: Text(
-                  'View Details',
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      _handleCancelBooking(booking, context);
+                    },
+                    icon: const Icon(Icons.cancel, size: 18),
+                    label: const Text('Cancel'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ],
@@ -543,7 +670,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 // TODO: Implement API call to cancel booking
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Booking cancelled successfully')),
+                  const SnackBar(
+                      content: Text('Booking cancelled successfully')),
                 );
                 setState(() {}); // Refresh the list
               },
@@ -559,9 +687,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   void _showEditProfileDialog(BuildContext context) {
-    final nameController = TextEditingController(text: _currentCustomer?.fullname);
-    final emailController = TextEditingController(text: _currentCustomer?.email);
-    final phoneController = TextEditingController(text: _currentCustomer?.phone);
+    final nameController =
+        TextEditingController(text: _currentCustomer?.fullname);
+    final emailController =
+        TextEditingController(text: _currentCustomer?.email);
+    final phoneController =
+        TextEditingController(text: _currentCustomer?.phone);
 
     showDialog(
       context: context,

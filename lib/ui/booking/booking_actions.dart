@@ -52,9 +52,26 @@ Future<void> saveBooking(
     customerPhone,
   );
 
-  setLoading(false);
-
   if (result != null) {
+    print('=== BOOKING SAVED SUCCESSFULLY ===');
+    print('Token: ${result.token}');
+    print('Booking Key: ${result.bookingkey}');
+    print('Customer Key: ${result.customerkey}');
+
+    // Fetch customer profile
+    final profile = await apiManager.fetchCustomerProfile();
+    if (profile != null) {
+      print('=== CUSTOMER PROFILE ===');
+      print(profile);
+    }
+
+    // Fetch customer bookings
+    final bookings = await apiManager.fetchCustomerBookings();
+    print('=== CUSTOMER BOOKINGS ===');
+    print('Total bookings: ${bookings.length}');
+
+    setLoading(false);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -79,8 +96,8 @@ Future<void> saveBooking(
         );
       },
     );
-    setLoading(false);
   } else {
+    setLoading(false);
     showAlertDialog(
       context,
       'Error : '.tr(),

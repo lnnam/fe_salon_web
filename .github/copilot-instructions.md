@@ -23,6 +23,14 @@ Flutter-based salon management application supporting web, iOS, Android, macOS, 
 - Bearer token auth: Retrieved from `SharedPreferences` and added to headers in `fetchFromServer()`
 - Error handling: 401 responses throw session expiry messages
 
+**Customer token flow (Guest bookings)**:
+- After booking, backend returns `{ token, bookingkey, customerkey }` (model: `BookingResponse`)
+- Token stored in `SharedPreferences` as `customer_token`
+- Use token to call:
+  - `/api/booking/customer/profile` via `fetchCustomerProfile()`
+  - `/api/booking/customer/bookings` via `fetchCustomerBookings()`
+- Both methods automatically retrieve token from SharedPreferences and use Bearer auth
+
 ### Booking Workflow
 Multi-step wizard stored in `BookingProvider.onbooking`:
 1. Staff selection (`ui/booking/staff.dart`) → `setStaff()`

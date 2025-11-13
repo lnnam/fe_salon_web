@@ -9,6 +9,7 @@ import 'package:salonappweb/constants.dart';
 import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:salonappweb/model/user.dart';
+import 'package:salonappweb/main.dart';
 
 import 'dart:io' show Platform;
 
@@ -312,10 +313,21 @@ String audioMessageTime(Duration? audioDuration) {
 }
 
 logout(BuildContext context) async {
+  print('=== LOGOUT (helper.dart) START ===');
+
   SharedPreferences prefs = await SharedPreferences.getInstance();
   await prefs.clear();
+  print('✓ SharedPreferences cleared');
+
+  // Clear static user and customer profile
+  MyAppState.currentUser = null;
+  MyAppState.customerProfile = null;
+  print('✓ Static user and customer profile cleared');
+
+  print('=== LOGOUT COMPLETE ===');
+
   // Navigator.popUntil(context, ModalRoute.withName('/'));
-  Navigator.pushReplacementNamed(context, '/login');
+  Navigator.pushReplacementNamed(context, '/home');
 }
 
 Future<User> getCurrentUser() async {

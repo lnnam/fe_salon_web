@@ -9,4 +9,8 @@ class AppConfig {
   static const api_url_booking_del = '$api_url/api/booking/del';
   static const api_url_booking_getavailability =
       '$api_url/api/booking/getavailability';
+  static const api_url_customer_profile =
+      '$api_url/api/booking/customer/profile';
+  static const api_url_customer_bookings =
+      '$api_url/api/booking/customer/bookings';
 }

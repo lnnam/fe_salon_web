@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:salonappweb/config/app_config.dart';
 import 'package:salonappweb/model/user.dart';
 import 'package:salonappweb/model/booking.dart';
+import 'package:salonappweb/model/booking_response.dart';
 import 'package:salonappweb/model/staff.dart';
 import 'package:salonappweb/model/service.dart';
 import 'package:salonappweb/model/customer.dart';
 import 'package:salonappweb/services/helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MyHttp {
   /// @param username user salonkey
@@ -84,6 +86,40 @@ class MyHttp {
     }
   }
 
+  // Smart method that checks for customer token first, then admin token
+  Future<List<Booking>> ListBookingsSmart() async {
+    try {
+      print('=== ListBookingsSmart START ===');
+
+      // Check if customer token exists
+      final prefs = await SharedPreferences.getInstance();
+      final String? customerToken = prefs.getString('customer_token');
+      final String? adminToken = prefs.getString('token');
+
+      print(
+          'Customer token exists: ${customerToken != null && customerToken.isNotEmpty}');
+      print(
+          'Admin token exists: ${adminToken != null && adminToken.isNotEmpty}');
+
+      if (customerToken != null && customerToken.isNotEmpty) {
+        // Use customer bookings API
+        print('✓ Using customer API path');
+        final bookings = await fetchCustomerBookings();
+        print('✓ Customer API returned ${bookings.length} bookings');
+        return bookings;
+      } else {
+        // Use admin bookings API
+        print('✓ Using admin API path');
+        final bookings = await ListBooking();
+        print('✓ Admin API returned ${bookings.length} bookings');
+        return bookings;
+      }
+    } catch (error) {
+      print('✗ Error in ListBookingsSmart: $error');
+      rethrow;
+    }
+  }
+
   Future<List<Staff>> ListStaff() async {
     try {
       final response = await fetchFromServer(AppConfig.api_url_booking_staff);
@@ -125,7 +161,7 @@ class MyHttp {
 
   //BOOKING
 
-  Future<dynamic> SaveBooking(
+  Future<BookingResponse?> SaveBooking(
     int bookingKey,
     String customerKey,
     String serviceKey,
@@ -174,15 +210,27 @@ class MyHttp {
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
 
-      if (response.statusCode == 201) {
-        return User.fromJson(jsonDecode(response.body));
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        final bookingResponse = BookingResponse.fromJson(responseData);
+
+        // Store token in SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('customer_token', bookingResponse.token);
+        await prefs.setString('customer_key', bookingResponse.customerkey);
+
+        print('Token stored: ${bookingResponse.token}');
+        print('Customer key: ${bookingResponse.customerkey}');
+        print('Booking key: ${bookingResponse.bookingkey}');
+
+        return bookingResponse;
       } else {
-        //return null;  // Booking failed
         print('Error: ${response.statusCode}, Response: ${response.body}');
+        return null;
       }
     } catch (e) {
       print('Exception during SaveBooking: $e');
-      return e; // Return error for debugging
+      return null;
     }
   }
 
@@ -210,6 +258,108 @@ class MyHttp {
     } catch (e) {
       print('Delete error: $e');
       return false;
+    }
+  }
+
+  // Fetch customer profile using customer token
+  Future<Map<String, dynamic>?> fetchCustomerProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('customer_token');
+
+      print('=== FETCH CUSTOMER PROFILE START ===');
+      print('Customer token exists: ${token != null && token.isNotEmpty}');
+
+      if (token == null || token.isEmpty) {
+        print('No customer token found in SharedPreferences');
+        return null;
+      }
+
+      print('Using token: ${token.substring(0, 20)}...');
+      print('Calling: ${AppConfig.api_url_customer_profile}');
+
+      final response = await http.get(
+        Uri.parse(AppConfig.api_url_customer_profile),
+        headers: <String, String>{
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      print('=== FETCH CUSTOMER PROFILE END ===');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else {
+        print('Fetch profile failed: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Fetch profile error: $e');
+      return null;
+    }
+  }
+
+  // Fetch customer bookings using customer token
+  Future<List<Booking>> fetchCustomerBookings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('customer_token');
+
+      print('=== FETCH CUSTOMER BOOKINGS START ===');
+      print('Customer token exists: ${token != null && token.isNotEmpty}');
+
+      if (token == null || token.isEmpty) {
+        print('No customer token found in SharedPreferences');
+        return [];
+      }
+
+      print('Using token: ${token.substring(0, 20)}...');
+      print('Calling: ${AppConfig.api_url_customer_bookings}');
+
+      final response = await http.get(
+        Uri.parse(AppConfig.api_url_customer_bookings),
+        headers: <String, String>{
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      print('=== FETCH CUSTOMER BOOKINGS END ===');
+
+      if (response.statusCode == 200) {
+        final dynamic responseData = jsonDecode(response.body);
+        print('Response data type: ${responseData.runtimeType}');
+
+        List<dynamic> data;
+        if (responseData is List) {
+          data = responseData;
+        } else if (responseData is Map && responseData['bookings'] != null) {
+          data = responseData['bookings'] as List;
+        } else if (responseData is Map && responseData['data'] != null) {
+          data = responseData['data'] as List;
+        } else {
+          print('✗ Unexpected response format: $responseData');
+          return [];
+        }
+
+        print('Parsed ${data.length} bookings from response');
+        final bookings =
+            data.map<Booking>((item) => Booking.fromJson(item)).toList();
+        print('✓ Successfully created ${bookings.length} Booking objects');
+        return bookings;
+      } else {
+        print('Fetch bookings failed: ${response.statusCode}');
+        return [];
+      }
+    } catch (e, stackTrace) {
+      print('Fetch bookings error: $e');
+      print('Stack trace: $stackTrace');
+      return [];
     }
   }
 
