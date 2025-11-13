@@ -363,6 +363,78 @@ class MyHttp {
     }
   }
 
+  /// Register customer as a member with password
+  /// Updates customer profile and sets login credentials
+  Future<Map<String, dynamic>> registerMember({
+    required int customerkey,
+    required String fullname,
+    required String email,
+    required String phone,
+    required String password,
+    String? dob,
+  }) async {
+    try {
+      print('=== registerMember START ===');
+
+      final prefs = await SharedPreferences.getInstance();
+      final String? customerToken = prefs.getString('customer_token');
+
+      if (customerToken == null || customerToken.isEmpty) {
+        print('✗ No customer token found');
+        throw 'Customer token not found. Please login again.';
+      }
+
+      print('✓ Customer token found');
+
+      final memberData = <String, dynamic>{
+        'customerkey': customerkey,
+        'fullname': fullname,
+        'email': email,
+        'phone': phone,
+        'password': password,
+        'dob': dob ?? '',
+      };
+
+      print('Registering member at: ${AppConfig.api_url_customer_register_member}');
+      print('Data: ${jsonEncode(memberData)}');
+
+      final response = await http.post(
+        Uri.parse(AppConfig.api_url_customer_register_member),
+        headers: <String, String>{
+          'Authorization': 'Bearer $customerToken',
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(memberData),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        print('✓ Member registered successfully');
+        final Map<String, dynamic> result = json.decode(response.body);
+        print('=== registerMember END ===');
+        return result;
+      } else if (response.statusCode == 401) {
+        print('✗ Unauthorized - token may be expired');
+        throw 'Your session has expired. Please log in again.';
+      } else if (response.statusCode == 400) {
+        print('✗ Bad request - validation error');
+        final Map<String, dynamic> errorResult = json.decode(response.body);
+        throw errorResult['message'] ?? 'Invalid data provided';
+      } else if (response.statusCode == 409) {
+        print('✗ Conflict - email already registered');
+        throw 'This email is already registered as a member';
+      } else {
+        print('✗ Request failed with status: ${response.statusCode}');
+        throw 'Failed to register member. Status: ${response.statusCode}';
+      }
+    } catch (error) {
+      print('✗ Error in registerMember: $error');
+      rethrow;
+    }
+  }
+
 // MyHttp: returns list of simple maps (slot_time, available, available_staffs)
   Future<List<Map<String, dynamic>>> fetchAvailability({
     required DateTime date,

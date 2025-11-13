@@ -50,6 +50,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               email: profileData['email'] ?? '',
               phone: profileData['phone'] ?? '',
               photo: profileData['photo'] ?? '',
+              dob: profileData['dob'] ?? '',
             );
             print('✓ Created customer using direct mapping');
           }
@@ -79,6 +80,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               email: profileData['email'] ?? '',
               phone: profileData['phone'] ?? '',
               photo: profileData['photo'] ?? '',
+              dob: profileData['dob'] ?? '',
             );
             print('✓ Created customer using direct mapping');
           }
@@ -101,6 +103,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             email: user.email,
             phone: '',
             photo: user.profilephoto,
+            dob: '',
           );
         });
         print('=== _loadCustomerInfo END (Admin) ===');
@@ -136,31 +139,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 const SizedBox(height: 32),
                 _buildBookingsSection(context, color),
                 const SizedBox(height: 24),
-                // Logout Button
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: BorderSide(color: Colors.red[400]!),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(context, '/logout');
-                    },
-                    icon: Icon(Icons.logout, color: Colors.red[400]),
-                    label: Text(
-                      'LOGOUT',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.red[400],
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -279,24 +257,77 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              SizedBox(
+              const SizedBox(height: 8),
+              // Date of Birth
+              Container(
                 width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    _showEditProfileDialog(context);
-                  },
-                  icon: const Icon(Icons.edit, size: 16),
-                  label: const Text('Edit Profile'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    backgroundColor: color,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.cake, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _currentCustomer!.dob.isEmpty
+                            ? 'No date of birth'
+                            : _currentCustomer!.dob,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: _currentCustomer!.dob.isEmpty
+                              ? Colors.grey[400]
+                              : Colors.grey[800],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        _showSetMemberDialog(context);
+                      },
+                      icon: const Icon(Icons.person_add, size: 16),
+                      label: const Text('Set Member'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        backgroundColor: color,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pushReplacementNamed(context, '/logout');
+                      },
+                      icon: Icon(Icons.logout, size: 16, color: Colors.red[400]),
+                      label: Text(
+                        'Logout',
+                        style: TextStyle(color: Colors.red[400]),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        side: BorderSide(color: Colors.red[400]!),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -686,78 +717,296 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  void _showEditProfileDialog(BuildContext context) {
+  void _showSetMemberDialog(BuildContext context) {
     final nameController =
         TextEditingController(text: _currentCustomer?.fullname);
     final emailController =
         TextEditingController(text: _currentCustomer?.email);
     final phoneController =
         TextEditingController(text: _currentCustomer?.phone);
+    final dobController =
+        TextEditingController(text: _currentCustomer?.dob);
+    final passwordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    bool _obscurePassword = true;
+    bool _obscureConfirmPassword = true;
+    String? _errorMessage;
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Profile'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    border: OutlineInputBorder(),
-                  ),
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Set Member Account'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Complete your profile and set a password to create your member account for future logins.',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    // Error message banner
+                    if (_errorMessage != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red[300]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline, color: Colors.red[700], size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: TextStyle(
+                                  color: Colors.red[700],
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Full Name *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: phoneController,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone Number',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.phone),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: dobController,
+                      decoration: const InputDecoration(
+                        labelText: 'Date of Birth (YYYY-MM-DD)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.cake),
+                        hintText: '1990-01-01',
+                      ),
+                      keyboardType: TextInputType.datetime,
+                      onTap: () async {
+                        // Show date picker when field is tapped
+                        FocusScope.of(context).requestFocus(FocusNode());
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: dobController.text.isNotEmpty
+                              ? DateTime.tryParse(dobController.text) ?? DateTime.now()
+                              : DateTime.now(),
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime.now(),
+                        );
+                        if (pickedDate != null) {
+                          dobController.text = 
+                              '${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}';
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Set Password for Login',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: 'Password *',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setDialogState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: confirmPasswordController,
+                      obscureText: _obscureConfirmPassword,
+                      decoration: InputDecoration(
+                        labelText: 'Confirm Password *',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setDialogState(() {
+                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '* Required fields',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Cancel'),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.phone,
+                ElevatedButton(
+                  onPressed: () async {
+                    // Clear previous error
+                    setDialogState(() {
+                      _errorMessage = null;
+                    });
+
+                    // Validate inputs
+                    if (nameController.text.trim().isEmpty) {
+                      setDialogState(() {
+                        _errorMessage = 'Please enter your name';
+                      });
+                      return;
+                    }
+                    if (emailController.text.trim().isEmpty) {
+                      setDialogState(() {
+                        _errorMessage = 'Please enter your email';
+                      });
+                      return;
+                    }
+                    if (passwordController.text.isEmpty) {
+                      setDialogState(() {
+                        _errorMessage = 'Please set a password';
+                      });
+                      return;
+                    }
+                    if (passwordController.text.length < 6) {
+                      setDialogState(() {
+                        _errorMessage = 'Password must be at least 6 characters';
+                      });
+                      return;
+                    }
+                    if (passwordController.text != confirmPasswordController.text) {
+                      setDialogState(() {
+                        _errorMessage = 'Passwords do not match';
+                      });
+                      return;
+                    }
+
+                    // Show loading indicator
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (BuildContext context) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      },
+                    );
+
+                    try {
+                      // Call API to register member
+                      final result = await apiManager.registerMember(
+                        customerkey: _currentCustomer!.customerkey,
+                        fullname: nameController.text.trim(),
+                        email: emailController.text.trim(),
+                        phone: phoneController.text.trim(),
+                        password: passwordController.text,
+                        dob: dobController.text.trim(),
+                      );
+
+                      print('Register member result: $result');
+
+                      // Update local customer data
+                      setState(() {
+                        _currentCustomer = Customer(
+                          customerkey: _currentCustomer!.customerkey,
+                          fullname: nameController.text.trim(),
+                          email: emailController.text.trim(),
+                          phone: phoneController.text.trim(),
+                          photo: _currentCustomer!.photo,
+                          dob: dobController.text.trim(),
+                        );
+                      });
+
+                      // Close loading dialog
+                      Navigator.pop(context);
+                      // Close set member dialog
+                      Navigator.pop(dialogContext);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Member account created successfully! You can now login with your email and password.',
+                          ),
+                          duration: Duration(seconds: 4),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } catch (e) {
+                      print('Error registering member: $e');
+                      
+                      // Close loading dialog
+                      Navigator.pop(context);
+
+                      // Show error in dialog
+                      setDialogState(() {
+                        _errorMessage = 'Failed to create member account: $e';
+                      });
+                    }
+                  },
+                  child: const Text('Save Member'),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Implement API call to update customer profile
-                setState(() {
-                  _currentCustomer = Customer(
-                    customerkey: _currentCustomer!.customerkey,
-                    fullname: nameController.text,
-                    email: emailController.text,
-                    phone: phoneController.text,
-                    photo: _currentCustomer!.photo,
-                  );
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Profile updated successfully')),
-                );
-              },
-              child: const Text('Save'),
-            ),
-          ],
+            );
+          },
         );
       },
     );

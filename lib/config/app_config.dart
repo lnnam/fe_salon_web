@@ -13,4 +13,6 @@ class AppConfig {
       '$api_url/api/booking/customer/profile';
   static const api_url_customer_bookings =
       '$api_url/api/booking/customer/bookings';
+  static const api_url_customer_register_member =
+      '$api_url/api/booking/customer/register-member';
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:salonappweb/api/api_manager.dart';
-import 'package:salonappweb/services/helper.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:salonappweb/model/booking.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
@@ -9,7 +8,7 @@ import 'package:salonappweb/provider/booking.provider.dart';
 import 'home.dart';
 import 'calendar.dart'; // ⬅️ Replace with actual path
 import 'staff.dart'; // ⬅️ Replace with actual path
-import 'customer.dart'; // ⬅️ Replace with actual path
+// ⬅️ Replace with actual path
 import 'service.dart'; // ⬅️ Replace with actual path
 import 'booking_actions.dart';
 
