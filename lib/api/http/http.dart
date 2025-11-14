@@ -48,9 +48,20 @@ class MyHttp {
     // Constructing options for HTTP request
     final Uri uri = Uri.parse(apiEndpoint);
 
-    final User currentUser = await getCurrentUser();
+    // Try to get customer token first
+    final prefs = await SharedPreferences.getInstance();
+    final String? customerToken = prefs.getString('customer_token');
 
-    final String token = currentUser.token;
+    String? token;
+    if (customerToken != null && customerToken.isNotEmpty) {
+      token = customerToken;
+      print('✓ Using customer token for API call');
+    } else {
+      // Fallback to admin token if available
+      final User currentUser = await getCurrentUser();
+      token = currentUser.token;
+      print('✓ Using admin token for API call');
+    }
 
     final Map<String, String> headers = {
       'Authorization': 'Bearer $token',
@@ -86,7 +97,7 @@ class MyHttp {
     }
   }
 
-  // Smart method that checks for customer token first, then admin token
+  // Smart method that uses customer token by default
   Future<List<Booking>> ListBookingsSmart() async {
     try {
       print('=== ListBookingsSmart START ===');
@@ -94,25 +105,20 @@ class MyHttp {
       // Check if customer token exists
       final prefs = await SharedPreferences.getInstance();
       final String? customerToken = prefs.getString('customer_token');
-      final String? adminToken = prefs.getString('token');
 
       print(
           'Customer token exists: ${customerToken != null && customerToken.isNotEmpty}');
-      print(
-          'Admin token exists: ${adminToken != null && adminToken.isNotEmpty}');
 
       if (customerToken != null && customerToken.isNotEmpty) {
         // Use customer bookings API
-        print('✓ Using customer API path');
+        print('✓ Using customer bookings API');
         final bookings = await fetchCustomerBookings();
         print('✓ Customer API returned ${bookings.length} bookings');
         return bookings;
       } else {
-        // Use admin bookings API
-        print('✓ Using admin API path');
-        final bookings = await ListBooking();
-        print('✓ Admin API returned ${bookings.length} bookings');
-        return bookings;
+        // No customer token - return empty list or throw error
+        print('✗ No customer token found');
+        throw 'Please log in to view bookings';
       }
     } catch (error) {
       print('✗ Error in ListBookingsSmart: $error');
@@ -363,6 +369,110 @@ class MyHttp {
     }
   }
 
+  // Cancel booking using customer token
+  Future<bool> cancelCustomerBooking(int bookingId) async {
+    try {
+      print('=== CANCEL CUSTOMER BOOKING START ===');
+      print('Booking ID: $bookingId');
+
+      final prefs = await SharedPreferences.getInstance();
+      final String? customerToken = prefs.getString('customer_token');
+
+      if (customerToken == null || customerToken.isEmpty) {
+        print('✗ No customer token found');
+        return false;
+      }
+
+      print('✓ Using customer token');
+      print('Calling: ${AppConfig.api_url_booking_del}');
+
+      final requestBody = {
+        'bookingkey': bookingId,
+      };
+
+      print('Request body: ${jsonEncode(requestBody)}');
+
+      final response = await http.post(
+        Uri.parse(AppConfig.api_url_booking_del),
+        headers: <String, String>{
+          'Authorization': 'Bearer $customerToken',
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      print('=== CANCEL CUSTOMER BOOKING END ===');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        print('✓ Booking cancelled successfully');
+        return true;
+      } else {
+        print('✗ Cancel failed: ${response.statusCode}');
+        return false;
+      }
+    } catch (e, stackTrace) {
+      print('✗ Cancel booking error: $e');
+      print('Stack trace: $stackTrace');
+      return false;
+    }
+  }
+
+  /// Customer login with email or phone
+  /// Returns token and customer info on success
+  Future<Map<String, dynamic>?> customerLogin({
+    required String emailOrPhone,
+    required String password,
+  }) async {
+    try {
+      print('=== CUSTOMER LOGIN START ===');
+      print('Email/Phone: $emailOrPhone');
+
+      final loginData = {
+        'emailOrPhone': emailOrPhone,
+        'password': password,
+      };
+
+      print('Calling: ${AppConfig.api_url_customer_login}');
+      print('Request body: ${jsonEncode(loginData)}');
+
+      final response = await http.post(
+        Uri.parse(AppConfig.api_url_customer_login),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(loginData),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      print('=== CUSTOMER LOGIN END ===');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+
+        // Store customer token
+        if (responseData['token'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('customer_token', responseData['token']);
+          await prefs.setString(
+              'customer_key', responseData['customerkey']?.toString() ?? '');
+          print('✓ Customer token stored');
+        }
+
+        return responseData;
+      } else {
+        print('✗ Login failed: ${response.statusCode}');
+        return null;
+      }
+    } catch (e, stackTrace) {
+      print('✗ Customer login error: $e');
+      print('Stack trace: $stackTrace');
+      return null;
+    }
+  }
+
   /// Register customer as a member with password
   /// Updates customer profile and sets login credentials
   Future<Map<String, dynamic>> registerMember({
@@ -395,7 +505,8 @@ class MyHttp {
         'dob': dob ?? '',
       };
 
-      print('Registering member at: ${AppConfig.api_url_customer_register_member}');
+      print(
+          'Registering member at: ${AppConfig.api_url_customer_register_member}');
       print('Data: ${jsonEncode(memberData)}');
 
       final response = await http.post(
@@ -435,6 +546,74 @@ class MyHttp {
     }
   }
 
+  // Public registration - no authentication required
+  Future<Map<String, dynamic>> registerNewCustomer({
+    required String fullname,
+    required String email,
+    required String phone,
+    required String password,
+    String? dob,
+  }) async {
+    try {
+      print('=== registerNewCustomer START ===');
+
+      final customerData = <String, dynamic>{
+        'fullname': fullname,
+        'email': email,
+        'phone': phone,
+        'password': password,
+        'dob': dob ?? '',
+      };
+
+      print(
+          'Registering new customer at: ${AppConfig.api_url_customer_register}');
+      print('Data: ${jsonEncode(customerData)}');
+
+      final response = await http.post(
+        Uri.parse(AppConfig.api_url_customer_register),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(customerData),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('✓ Customer registered successfully');
+        final Map<String, dynamic> result = json.decode(response.body);
+
+        // Store token if returned by backend
+        if (result['token'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('customer_token', result['token']);
+          if (result['customerkey'] != null) {
+            await prefs.setString(
+                'customer_key', result['customerkey'].toString());
+          }
+          print('✓ Customer token stored: ${result['token']}');
+        }
+
+        print('=== registerNewCustomer END ===');
+        return result;
+      } else if (response.statusCode == 400) {
+        print('✗ Bad request - validation error');
+        final Map<String, dynamic> errorResult = json.decode(response.body);
+        throw errorResult['message'] ?? 'Invalid data provided';
+      } else if (response.statusCode == 409) {
+        print('✗ Conflict - email already registered');
+        throw 'This email is already registered';
+      } else {
+        print('✗ Request failed with status: ${response.statusCode}');
+        throw 'Failed to register. Status: ${response.statusCode}';
+      }
+    } catch (error) {
+      print('✗ Error in registerNewCustomer: $error');
+      rethrow;
+    }
+  }
+
 // MyHttp: returns list of simple maps (slot_time, available, available_staffs)
   Future<List<Map<String, dynamic>>> fetchAvailability({
     required DateTime date,
@@ -442,8 +621,20 @@ class MyHttp {
     int serviceDuration = 45,
   }) async {
     try {
-      final User currentUser = await getCurrentUser();
-      final String token = currentUser.token;
+      // Try to get customer token first
+      final prefs = await SharedPreferences.getInstance();
+      final String? customerToken = prefs.getString('customer_token');
+
+      String? token;
+      if (customerToken != null && customerToken.isNotEmpty) {
+        token = customerToken;
+        print('✓ Using customer token for availability');
+      } else {
+        // Fallback to admin token if available
+        final User currentUser = await getCurrentUser();
+        token = currentUser.token;
+        print('✓ Using admin token for availability');
+      }
 
       final String formattedDate = date.toIso8601String().substring(0, 10);
       final Uri uri = Uri.parse(

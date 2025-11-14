@@ -96,8 +96,19 @@ class _SummaryPageState extends State<SummaryPage> {
       staffName = bookingDetails['staffname'] ?? 'Unknown';
       serviceName = bookingDetails['servicename'] ?? 'Unknown';
       note = bookingDetails['note'] ?? '';
-      customerEmail = bookingDetails['guestemail'] ?? '';
-      customerPhone = bookingDetails['guestphone'] ?? '';
+
+      // For logged-in customers, get email/phone from customer details
+      // For guest bookings, use guestemail/guestphone
+      if (bookingDetails['guestemail'] != null &&
+          bookingDetails['guestemail'].toString().isNotEmpty) {
+        customerEmail = bookingDetails['guestemail'] ?? '';
+        customerPhone = bookingDetails['guestphone'] ?? '';
+      } else {
+        // Use customer details from BookingProvider
+        customerEmail = bookingProvider.onbooking.customer?['email'] ?? '';
+        customerPhone = bookingProvider.onbooking.customer?['phone'] ?? '';
+      }
+
       noteController = TextEditingController(text: note);
     }
 

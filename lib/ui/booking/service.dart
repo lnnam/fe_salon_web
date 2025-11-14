@@ -3,8 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:salonappweb/api/api_manager.dart';
 import 'package:salonappweb/model/service.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
-import 'package:salonappweb/ui/booking/staff.dart';
-// Import SchedulePage
+import 'calendar.dart';
 import 'summary.dart';
 
 class ServicePage extends StatelessWidget {
@@ -64,12 +63,12 @@ class ServicePage extends StatelessWidget {
                           final bookingProvider = Provider.of<BookingProvider>(
                               context,
                               listen: false);
-                          final isEditMode =
-                              bookingProvider.onbooking.editMode ?? false;
+                          final isEditMode = bookingProvider.onbooking.editMode;
 
-                          // Set staff
+                          // Set service
                           bookingProvider.setService(service.toJson());
 
+                          // If edit mode, go to Summary; otherwise go to Calendar
                           if (isEditMode) {
                             Navigator.push(
                               context,
@@ -80,7 +79,8 @@ class ServicePage extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const StaffPage()),
+                                  builder: (context) =>
+                                      const BookingCalendarPage()),
                             );
                           }
                         },

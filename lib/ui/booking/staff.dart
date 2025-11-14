@@ -4,7 +4,7 @@ import 'package:salonappweb/api/api_manager.dart';
 import 'package:salonappweb/model/staff.dart';
 import 'package:salonappweb/services/helper.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
-import 'package:salonappweb/ui/booking/calendar.dart';
+import 'package:salonappweb/ui/booking/service.dart';
 import 'summary.dart';
 
 class StaffPage extends StatelessWidget {
@@ -69,8 +69,7 @@ class StaffPage extends StatelessWidget {
                           final bookingProvider = Provider.of<BookingProvider>(
                               context,
                               listen: false);
-                          final isEditMode =
-                              bookingProvider.onbooking.editMode ?? false;
+                          final isEditMode = bookingProvider.onbooking.editMode;
 
                           // Set staff
                           bookingProvider.setStaff(staff.toJson());
@@ -85,7 +84,7 @@ class StaffPage extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const BookingCalendarPage()),
+                                  builder: (context) => const ServicePage()),
                             );
                           }
                         },

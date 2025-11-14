@@ -39,33 +39,35 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
     await Future.delayed(const Duration(seconds: 1));
     converted.add(DateTimeRange(
         start: newBooking.bookingStart, end: newBooking.bookingEnd));
-    // print('${newBooking.toJson()} has been uploaded');
-    Provider.of<BookingProvider>(context, listen: false)
-        .setSchedule(newBooking.toJson());
-/*    
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
-                          // Check if serviceKey is set
-                          final serviceKey = bookingProvider.bookingDetails['serviceKey'];
-                          if (serviceKey != null && serviceKey.toString().isNotEmpty) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const SummaryPage()),
-                            );
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const CustomerPage()),
-                            );
-                          } */
 
-    // Navigate to Summary page after scheduling
+    // Debug: Print what's in the booking
+    print('=== CALENDAR BOOKING DATA ===');
+    print('Booking Start: ${newBooking.bookingStart}');
+    print('Booking End: ${newBooking.bookingEnd}');
+    print('Service Name: ${newBooking.serviceName}');
+    print('Service Duration: ${newBooking.serviceDuration}');
+    print('toJson: ${newBooking.toJson()}');
+    print('============================');
+
+    // Create properly formatted schedule data with correct key
+    final scheduleData = {
+      'bookingStart': newBooking.bookingStart.toIso8601String(),
+      'bookingEnd': newBooking.bookingEnd.toIso8601String(),
+      'serviceName': newBooking.serviceName,
+      'serviceDuration': newBooking.serviceDuration,
+    };
+
+    print('Formatted schedule data: $scheduleData');
+
+    Provider.of<BookingProvider>(context, listen: false)
+        .setSchedule(scheduleData);
+
+    // Navigate to Summary page always
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const SummaryPage()),
     );
-  }
-
-/* List<DateTimeRange> convertStreamResultMock({required dynamic streamResult}) {
+  } /* List<DateTimeRange> convertStreamResultMock({required dynamic streamResult}) {
   return (streamResult as List)
       .map((item) => DateTimeRange(
             start: DateTime.parse(item['bookingstart']),
@@ -73,6 +75,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
           ))
       .toList();
 } */
+
   List<DateTimeRange> convertStreamResultMock({required dynamic streamResult}) {
     List<DateTimeRange> converted = [];
 

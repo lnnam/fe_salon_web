@@ -55,7 +55,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             print('✓ Created customer using direct mapping');
           }
           print(
-              'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}');
+              'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
         });
         print('=== _loadCustomerInfo END (Preloaded) ===');
         return;
@@ -85,7 +85,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             print('✓ Created customer using direct mapping');
           }
           print(
-              'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}');
+              'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
         });
         print('=== _loadCustomerInfo END (API) ===');
         return;
@@ -146,6 +146,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          // Set customer details in BookingProvider before starting new booking
+          if (_currentCustomer != null) {
+            final bookingProvider =
+                Provider.of<BookingProvider>(context, listen: false);
+            bookingProvider.setCustomerDetails({
+              'customerkey': _currentCustomer!.customerkey,
+              'fullname': _currentCustomer!.fullname,
+              'email': _currentCustomer!.email,
+              'phone': _currentCustomer!.phone,
+            });
+            print(
+                '✓ Customer details set in BookingProvider: ${_currentCustomer!.fullname}');
+          }
+
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const StaffPage()),
@@ -313,7 +327,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       onPressed: () {
                         Navigator.pushReplacementNamed(context, '/logout');
                       },
-                      icon: Icon(Icons.logout, size: 16, color: Colors.red[400]),
+                      icon:
+                          Icon(Icons.logout, size: 16, color: Colors.red[400]),
                       label: Text(
                         'Logout',
                         style: TextStyle(color: Colors.red[400]),
@@ -529,7 +544,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      booking.servicename,
+                      booking.servicename == 'N/A' ||
+                              booking.servicename == 'Unknown' ||
+                              booking.servicename == 'null' ||
+                              booking.servicename.isEmpty
+                          ? 'Service Booking'
+                          : booking.servicename,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -590,7 +610,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
               const SizedBox(width: 8),
               Text(
-                formatBookingTime(booking.bookingstart),
+                formatBookingTime(booking.bookingtime),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -609,6 +629,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   color: isPast ? Colors.grey[600] : Colors.grey[700],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.spa, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Service: ${booking.servicename == 'N/A' || booking.servicename == 'Unknown' || booking.servicename == 'null' || booking.servicename.isEmpty ? 'Not specified' : booking.servicename}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isPast ? Colors.grey[600] : Colors.grey[700],
+                  ),
                 ),
               ),
             ],
@@ -697,14 +733,56 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               child: const Text('No'),
             ),
             ElevatedButton(
-              onPressed: () {
-                // TODO: Implement API call to cancel booking
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Booking cancelled successfully')),
+              onPressed: () async {
+                Navigator.pop(context); // Close dialog
+
+                // Show loading indicator
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
                 );
-                setState(() {}); // Refresh the list
+
+                try {
+                  // Call API to cancel booking
+                  final success =
+                      await apiManager.cancelCustomerBooking(booking.pkey);
+
+                  if (!mounted) return;
+                  Navigator.pop(context); // Close loading dialog
+
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Booking cancelled successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    // Refresh the booking list
+                    setState(() {
+                      _bookingsFuture = apiManager.ListBookingsSmart();
+                    });
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content:
+                            Text('Failed to cancel booking. Please try again.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (!mounted) return;
+                  Navigator.pop(context); // Close loading dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -724,8 +802,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         TextEditingController(text: _currentCustomer?.email);
     final phoneController =
         TextEditingController(text: _currentCustomer?.phone);
-    final dobController =
-        TextEditingController(text: _currentCustomer?.dob);
+    final dobController = TextEditingController(text: _currentCustomer?.dob);
     final passwordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
     bool _obscurePassword = true;
@@ -761,7 +838,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.error_outline, color: Colors.red[700], size: 20),
+                            Icon(Icons.error_outline,
+                                color: Colors.red[700], size: 20),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -821,13 +899,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         final pickedDate = await showDatePicker(
                           context: context,
                           initialDate: dobController.text.isNotEmpty
-                              ? DateTime.tryParse(dobController.text) ?? DateTime.now()
+                              ? DateTime.tryParse(dobController.text) ??
+                                  DateTime.now()
                               : DateTime.now(),
                           firstDate: DateTime(1900),
                           lastDate: DateTime.now(),
                         );
                         if (pickedDate != null) {
-                          dobController.text = 
+                          dobController.text =
                               '${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}';
                         }
                       },
@@ -880,7 +959,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           ),
                           onPressed: () {
                             setDialogState(() {
-                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
                             });
                           },
                         ),
@@ -929,11 +1009,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     }
                     if (passwordController.text.length < 6) {
                       setDialogState(() {
-                        _errorMessage = 'Password must be at least 6 characters';
+                        _errorMessage =
+                            'Password must be at least 6 characters';
                       });
                       return;
                     }
-                    if (passwordController.text != confirmPasswordController.text) {
+                    if (passwordController.text !=
+                        confirmPasswordController.text) {
                       setDialogState(() {
                         _errorMessage = 'Passwords do not match';
                       });
@@ -992,7 +1074,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       );
                     } catch (e) {
                       print('Error registering member: $e');
-                      
+
                       // Close loading dialog
                       Navigator.pop(context);
 

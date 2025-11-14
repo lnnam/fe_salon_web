@@ -21,8 +21,10 @@ class Customer {
       fullname: json['fullname'] ?? 'Unknown',
       email: json['email'] ?? 'Unknown',
       phone: json['phone'] ?? 'Unknown',
-      photo: json['photobase64'] != null && json['photobase64'] != '' ? json['photobase64'] : 'Unknown',
-      dob: json['dob'] ?? '',
+      photo: json['photobase64'] != null && json['photobase64'] != ''
+          ? json['photobase64']
+          : 'Unknown',
+      dob: json['birthday'] ?? json['dob'] ?? '',
     );
   }
 
