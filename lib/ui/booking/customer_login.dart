@@ -5,6 +5,8 @@ import 'package:salonappweb/main.dart';
 import 'home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:provider/provider.dart';
+import 'package:salonappweb/provider/booking.provider.dart';
 
 class CustomerLoginPage extends StatefulWidget {
   const CustomerLoginPage({super.key});
@@ -251,6 +253,21 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
           await prefs.setString(
               'cached_customer_profile', jsonEncode(profileData));
           print('✓ Customer profile cached in SharedPreferences');
+
+          // Set customer data in BookingProvider for booking flow
+          if (!mounted) return;
+          final bookingProvider =
+              Provider.of<BookingProvider>(context, listen: false);
+          bookingProvider.setCustomerDetails({
+            'pkey': profileData['pkey'] ?? profileData['customerkey'],
+            'customerkey': profileData['pkey'] ?? profileData['customerkey'],
+            'fullname': profileData['fullname'] ?? 'Guest',
+            'email': profileData['email'] ?? '',
+            'phone': profileData['phone'] ?? '',
+            'dob': profileData['dob'] ?? '',
+          });
+          print(
+              '✓ Customer data set in BookingProvider: ${profileData['fullname']}');
         } else {
           print('⚠ Could not load customer profile, using login data');
           // Fallback: use login result as profile
@@ -259,6 +276,19 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
           // Cache the login result as profile
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('cached_customer_profile', jsonEncode(result));
+
+          // Set customer data in BookingProvider from login result
+          if (!mounted) return;
+          final bookingProvider =
+              Provider.of<BookingProvider>(context, listen: false);
+          bookingProvider.setCustomerDetails({
+            'pkey': result['pkey'] ?? result['customerkey'],
+            'customerkey': result['pkey'] ?? result['customerkey'],
+            'fullname': result['fullname'] ?? 'Guest',
+            'email': result['email'] ?? '',
+            'phone': result['phone'] ?? '',
+          });
+          print('✓ Customer data set in BookingProvider from login result');
         }
 
         if (!mounted) return;
@@ -565,6 +595,23 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                           await prefs.setString('cached_customer_profile',
                               jsonEncode(profileData));
                           print('✓ Customer profile cached after registration');
+
+                          // Set customer data in BookingProvider for booking flow
+                          final bookingProvider = Provider.of<BookingProvider>(
+                              context,
+                              listen: false);
+                          bookingProvider.setCustomerDetails({
+                            'pkey': profileData['pkey'] ??
+                                profileData['customerkey'],
+                            'customerkey': profileData['pkey'] ??
+                                profileData['customerkey'],
+                            'fullname': profileData['fullname'] ?? 'Guest',
+                            'email': profileData['email'] ?? '',
+                            'phone': profileData['phone'] ?? '',
+                            'dob': profileData['dob'] ?? '',
+                          });
+                          print(
+                              '✓ Customer data set in BookingProvider after registration');
                         }
 
                         // Close loading dialog

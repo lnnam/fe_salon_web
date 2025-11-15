@@ -23,7 +23,8 @@ class CustomerHomeScreen extends StatefulWidget {
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Customer? _currentCustomer;
-  late Future<List<Booking>> _bookingsFuture;
+  Future<List<Booking>> _bookingsFuture =
+      Future.value([]); // Initialize with empty list
   bool _isLoadingProfile = true;
 
   @override
@@ -94,6 +95,26 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           print(
               'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
         });
+
+        // Set customer data in BookingProvider for booking flow (after frame to avoid build conflict)
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          try {
+            final bookingProvider =
+                Provider.of<BookingProvider>(context, listen: false);
+            bookingProvider.setCustomerDetails({
+              'pkey': profileData['pkey'] ?? profileData['customerkey'],
+              'customerkey': profileData['pkey'] ?? profileData['customerkey'],
+              'fullname': profileData['fullname'] ?? 'Guest',
+              'email': profileData['email'] ?? '',
+              'phone': profileData['phone'] ?? '',
+              'dob': profileData['dob'] ?? '',
+            });
+            print('✓ Customer data set in BookingProvider (preloaded)');
+          } catch (e) {
+            print('Could not set customer details in BookingProvider: $e');
+          }
+        });
+
         print('=== _loadCustomerInfo END (Preloaded) ===');
         return;
       }
@@ -139,6 +160,27 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             print(
                 'Customer from cache: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
           });
+
+          // Set customer data in BookingProvider for booking flow (after frame to avoid build conflict)
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            try {
+              final bookingProvider =
+                  Provider.of<BookingProvider>(context, listen: false);
+              bookingProvider.setCustomerDetails({
+                'pkey': profileData['pkey'] ?? profileData['customerkey'],
+                'customerkey':
+                    profileData['pkey'] ?? profileData['customerkey'],
+                'fullname': profileData['fullname'] ?? 'Guest',
+                'email': profileData['email'] ?? '',
+                'phone': profileData['phone'] ?? '',
+                'dob': profileData['dob'] ?? '',
+              });
+              print('✓ Customer data set in BookingProvider (cached)');
+            } catch (e) {
+              print('Could not set customer details in BookingProvider: $e');
+            }
+          });
+
           print('=== _loadCustomerInfo END (Cached) ===');
           return;
         } catch (e) {
@@ -181,6 +223,26 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           print(
               'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
         });
+
+        // Set customer data in BookingProvider for booking flow (after frame to avoid build conflict)
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          try {
+            final bookingProvider =
+                Provider.of<BookingProvider>(context, listen: false);
+            bookingProvider.setCustomerDetails({
+              'pkey': profileData['pkey'] ?? profileData['customerkey'],
+              'customerkey': profileData['pkey'] ?? profileData['customerkey'],
+              'fullname': profileData['fullname'] ?? 'Guest',
+              'email': profileData['email'] ?? '',
+              'phone': profileData['phone'] ?? '',
+              'dob': profileData['dob'] ?? '',
+            });
+            print('✓ Customer data set in BookingProvider (API fetch)');
+          } catch (e) {
+            print('Could not set customer details in BookingProvider: $e');
+          }
+        });
+
         print('=== _loadCustomerInfo END (API) ===');
         return;
       }
@@ -213,10 +275,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Reset booking when home page loads
-    final bookingProvider =
-        Provider.of<BookingProvider>(context, listen: false);
-    bookingProvider.resetBooking();
+    // Reset booking when home page loads (after frame to avoid build conflict)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        final bookingProvider =
+            Provider.of<BookingProvider>(context, listen: false);
+        bookingProvider.resetBooking();
+      } catch (e) {
+        print('Could not reset booking: $e');
+      }
+    });
 
     const color = Color(COLOR_PRIMARY);
     return Scaffold(
@@ -245,6 +313,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             final bookingProvider =
                 Provider.of<BookingProvider>(context, listen: false);
             bookingProvider.setCustomerDetails({
+              'pkey': _currentCustomer!.customerkey,
               'customerkey': _currentCustomer!.customerkey,
               'fullname': _currentCustomer!.fullname,
               'email': _currentCustomer!.email,
@@ -461,13 +530,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         FutureBuilder<List<Booking>>(
           future: _bookingsFuture,
           builder: (context, snapshot) {
-            print('=== BOOKINGS FUTURE BUILDER ===');
-            print('Connection state: ${snapshot.connectionState}');
-            print('Has error: ${snapshot.hasError}');
-            print('Error: ${snapshot.error}');
-            print('Has data: ${snapshot.hasData}');
-            print('Data length: ${snapshot.data?.length}');
-
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Padding(
                 padding: EdgeInsets.all(32.0),
@@ -501,10 +563,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               print('✗ No bookings data');
               return _buildEmptyState();
             }
-
-            print('✓ Received ${snapshot.data!.length} bookings');
-            print(
-                'Current customer key: ${_currentCustomer?.customerkey} (${_currentCustomer?.customerkey.runtimeType})');
 
             // Log all bookings
             for (var booking in snapshot.data!) {
@@ -652,7 +710,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _formatDate(DateTime.parse(booking.bookingdate)),
+                      formatBookingTime(booking.bookingtime) +
+                          ' : ' +
+                          _formatDate(DateTime.parse(booking.bookingdate)),
                       style: TextStyle(
                         fontSize: 14,
                         color: isPast ? Colors.grey[500] : Colors.grey[700],
@@ -698,21 +758,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ),
           const SizedBox(height: 12),
           Divider(color: Colors.grey[300]),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-              const SizedBox(width: 8),
-              Text(
-                formatBookingTime(booking.bookingtime),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: isPast ? Colors.grey[600] : Colors.black87,
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -1169,6 +1214,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
                       print('Register member result: $result');
 
+                      // Check if widget is still mounted
+                      if (!mounted) {
+                        Navigator.of(context, rootNavigator: true).pop();
+                        return;
+                      }
+
                       // Update local customer data
                       setState(() {
                         _currentCustomer = Customer(
@@ -1182,24 +1233,34 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       });
 
                       // Close loading dialog
-                      Navigator.pop(context);
+                      Navigator.of(context, rootNavigator: true).pop();
                       // Close set member dialog
                       Navigator.pop(dialogContext);
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Member account created successfully! You can now login with your email and password.',
+                      // Try to show success message
+                      try {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Member account created successfully! You can now login with your email and password.',
+                            ),
+                            duration: Duration(seconds: 4),
+                            backgroundColor: Colors.green,
                           ),
-                          duration: Duration(seconds: 4),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                        );
+                      } catch (e) {
+                        print('Could not show success snackbar: $e');
+                      }
                     } catch (e) {
                       print('Error registering member: $e');
 
+                      if (!mounted) {
+                        Navigator.of(context, rootNavigator: true).pop();
+                        return;
+                      }
+
                       // Close loading dialog
-                      Navigator.pop(context);
+                      Navigator.of(context, rootNavigator: true).pop();
 
                       // Show error in dialog
                       setDialogState(() {

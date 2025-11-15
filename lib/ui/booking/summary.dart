@@ -4,6 +4,7 @@ import 'package:salonappweb/api/api_manager.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:salonappweb/model/booking.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
+import 'package:salonappweb/main.dart'; // For MyAppState
 
 import 'home.dart';
 import 'calendar.dart'; // ⬅️ Replace with actual path
@@ -40,8 +41,8 @@ class _SummaryPageState extends State<SummaryPage> {
 
   @override
   void dispose() {
-    Provider.of<BookingProvider>(context, listen: false)
-        .setNote(noteController.text);
+    // Don't call provider methods in dispose - causes "framework locked" error
+    // Note is already saved via TextField onChanged callback
     noteController.dispose();
     super.dispose();
   }
@@ -57,8 +58,16 @@ class _SummaryPageState extends State<SummaryPage> {
     //  bookingProvider.setEditMode(true);
     // Schedule provider update after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<BookingProvider>(context, listen: false).setEditMode(true);
+      final provider = Provider.of<BookingProvider>(context, listen: false);
+      provider.setEditMode(true);
+
+      // Also set booking key and model after build if editing
+      if (widget.booking != null) {
+        provider.setBookingKey(bookingkey);
+        provider.setBookingFromModel(widget.booking!);
+      }
     });
+
     if (widget.booking != null) {
       print('widget');
 
@@ -67,6 +76,53 @@ class _SummaryPageState extends State<SummaryPage> {
 
       bookingkey = booking.pkey;
       customerKey = booking.customerkey;
+
+      print('=== SUMMARY INIT - EDITING BOOKING ===');
+      print('Initial customerKey from booking: $customerKey');
+      print('BookingProvider.customer: ${bookingProvider.onbooking.customer}');
+      print('MyAppState.customerProfile: ${MyAppState.customerProfile}');
+
+      // Fix: If customerKey is "Unknown", get it from MyAppState or BookingProvider
+      // Note: API returns 'pkey' field, not 'customerkey'
+      if (customerKey == 'Unknown' || customerKey.isEmpty) {
+        // Try MyAppState first (always loaded at app start)
+        if (MyAppState.customerProfile != null) {
+          // Check for 'pkey' first (from API), then 'customerkey' (normalized)
+          final pkeyValue = MyAppState.customerProfile!['pkey'];
+          final customerKeyValue = MyAppState.customerProfile!['customerkey'];
+
+          if (pkeyValue != null) {
+            customerKey = pkeyValue.toString();
+            print('✓ Got customerKey from MyAppState.pkey: $customerKey');
+          } else if (customerKeyValue != null) {
+            customerKey = customerKeyValue.toString();
+            print(
+                '✓ Got customerKey from MyAppState.customerkey: $customerKey');
+          }
+        }
+        // Fallback to BookingProvider
+        else if (bookingProvider.onbooking.customer != null) {
+          final pkeyValue = bookingProvider.onbooking.customer!['pkey'];
+          final customerKeyValue =
+              bookingProvider.onbooking.customer!['customerkey'];
+
+          if (pkeyValue != null) {
+            customerKey = pkeyValue.toString();
+            print('✓ Got customerKey from BookingProvider.pkey: $customerKey');
+          } else if (customerKeyValue != null) {
+            customerKey = customerKeyValue.toString();
+            print(
+                '✓ Got customerKey from BookingProvider.customerkey: $customerKey');
+          }
+        }
+
+        if (customerKey == 'Unknown' || customerKey.isEmpty) {
+          print('✗ WARNING: customerKey is still Unknown/empty!');
+        }
+      }
+      print('Final customerKey: $customerKey');
+      print('====================================');
+
       serviceKey = booking.servicekey;
       staffKey = booking.staffkey;
       bookingDate = booking.bookingdate;
@@ -75,10 +131,30 @@ class _SummaryPageState extends State<SummaryPage> {
       staffName = booking.staffname;
       serviceName = booking.servicename;
       note = booking.note;
-      customerEmail = ''; // Default for existing bookings
-      customerPhone = ''; // Default for existing bookings
-      bookingProvider.setBookingKey(bookingkey); // ✅ Added here
-      bookingProvider.setBookingFromModel(booking);
+
+      print('=== SUMMARY INIT - GETTING EMAIL/PHONE ===');
+      // Get email and phone from MyAppState first (always loaded), then BookingProvider
+      if (MyAppState.customerProfile != null) {
+        customerEmail = MyAppState.customerProfile!['email']?.toString() ?? '';
+        customerPhone = MyAppState.customerProfile!['phone']?.toString() ?? '';
+        print(
+            '✓ Got email/phone from MyAppState: $customerEmail / $customerPhone');
+      } else if (bookingProvider.onbooking.customer != null) {
+        customerEmail =
+            bookingProvider.onbooking.customer!['email']?.toString() ?? '';
+        customerPhone =
+            bookingProvider.onbooking.customer!['phone']?.toString() ?? '';
+        print('✓ Got email/phone from BookingProvider');
+      } else {
+        customerEmail = ''; // Default for existing bookings
+        customerPhone = ''; // Default for existing bookings
+        print('⚠ No email/phone source available');
+      }
+      print('==========================================');
+
+      // Moved to addPostFrameCallback to avoid setState during build
+      // bookingProvider.setBookingKey(bookingkey);
+      // bookingProvider.setBookingFromModel(booking);
     } else {
       print('bookingProvider');
 
@@ -266,7 +342,16 @@ class _SummaryPageState extends State<SummaryPage> {
                 ElevatedButton(
                   onPressed: isLoading
                       ? null
-                      : () => saveBooking(
+                      : () {
+                          print('=== SUMMARY PAGE - BEFORE SAVE ===');
+                          print('customerKey: $customerKey');
+                          print('customerEmail: $customerEmail');
+                          print('customerPhone: $customerPhone');
+                          print('serviceKey: $serviceKey');
+                          print('staffKey: $staffKey');
+                          print('================================');
+
+                          saveBooking(
                             context,
                             bookingkey,
                             (bool val) => setState(
@@ -282,7 +367,8 @@ class _SummaryPageState extends State<SummaryPage> {
                             serviceName,
                             customerEmail,
                             customerPhone,
-                          ),
+                          );
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     shape: RoundedRectangleBorder(
