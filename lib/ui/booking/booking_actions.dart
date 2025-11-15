@@ -3,6 +3,9 @@ import 'package:salonappweb/api/api_manager.dart';
 import 'package:salonappweb/services/helper.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'home.dart';
+import 'package:salonappweb/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 Future<void> saveBooking(
   BuildContext context,
@@ -58,11 +61,56 @@ Future<void> saveBooking(
     print('Booking Key: ${result.bookingkey}');
     print('Customer Key: ${result.customerkey}');
 
-    // Fetch customer profile
+    // Fetch and cache customer profile
+    final prefs = await SharedPreferences.getInstance();
     final profile = await apiManager.fetchCustomerProfile();
+
     if (profile != null) {
-      print('=== CUSTOMER PROFILE ===');
+      print('=== CUSTOMER PROFILE AFTER SAVE ===');
       print(profile);
+
+      // IMPORTANT: Merge with existing cached profile to preserve all data
+      // The API might not return all fields (email, phone might be null)
+      String? existingCache = prefs.getString('cached_customer_profile');
+      Map<String, dynamic> finalProfile = profile;
+
+      if (existingCache != null && existingCache.isNotEmpty) {
+        try {
+          final existingProfile =
+              jsonDecode(existingCache) as Map<String, dynamic>;
+          print('Merging with existing profile: $existingProfile');
+
+          // Merge: keep existing values if new values are null
+          finalProfile = {
+            ...existingProfile, // Start with existing data
+            ...profile, // Overlay with new data
+            // Restore non-null fields from existing if new ones are null
+            'email': profile['email'] ?? existingProfile['email'],
+            'phone': profile['phone'] ?? existingProfile['phone'],
+            'fullname': profile['fullname'] ?? existingProfile['fullname'],
+            'dob': profile['dob'] ?? existingProfile['dob'],
+          };
+          print('Merged profile: $finalProfile');
+        } catch (e) {
+          print('Error merging profiles, using new profile: $e');
+        }
+      }
+
+      // Store merged profile in MyAppState
+      MyAppState.customerProfile = finalProfile;
+      print('✓ Customer profile stored in MyAppState');
+
+      // Cache merged profile in SharedPreferences
+      await prefs.setString(
+          'cached_customer_profile', jsonEncode(finalProfile));
+      print('✓ Customer profile cached in SharedPreferences');
+
+      // Verify
+      final verifyCache = prefs.getString('cached_customer_profile');
+      print(
+          '✓ Verified cache exists: ${verifyCache != null && verifyCache.isNotEmpty}');
+    } else {
+      print('✗ Failed to fetch customer profile after booking save!');
     }
 
     // Fetch customer bookings
@@ -82,11 +130,16 @@ Future<void> saveBooking(
             Center(
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.push(
+                  print('=== NAVIGATING BACK TO HOME ===');
+                  print(
+                      'MyAppState.customerProfile before navigation: ${MyAppState.customerProfile}');
+                  Navigator.of(context).pop(); // Close dialog
+                  // Use pushAndRemoveUntil to replace all screens and force refresh
+                  Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(
                         builder: (context) => const CustomerHomeScreen()),
+                    (route) => false, // Remove all previous routes
                   );
                 },
                 child: const Text("OK"),

@@ -11,6 +11,8 @@ import 'package:provider/provider.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:salonappweb/main.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -22,17 +24,52 @@ class CustomerHomeScreen extends StatefulWidget {
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Customer? _currentCustomer;
   late Future<List<Booking>> _bookingsFuture;
+  bool _isLoadingProfile = true;
 
   @override
   void initState() {
     super.initState();
-    _loadCustomerInfo();
-    _bookingsFuture = apiManager.ListBookingsSmart();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    print('=== _initializeData START ===');
+
+    // Load customer info first
+    await _loadCustomerInfo();
+
+    // Check if we have a customer token before trying to load bookings
+    final prefs = await SharedPreferences.getInstance();
+    final customerToken = prefs.getString('customer_token');
+
+    print(
+        'Customer token after _loadCustomerInfo: ${customerToken != null && customerToken.isNotEmpty ? "EXISTS" : "MISSING"}');
+    print(
+        'Current customer after _loadCustomerInfo: ${_currentCustomer?.fullname}');
+
+    if (customerToken != null && customerToken.isNotEmpty) {
+      // Then load bookings after customer profile is loaded
+      print('✓ Customer token found, loading bookings...');
+      setState(() {
+        _bookingsFuture = apiManager.ListBookingsSmart();
+        _isLoadingProfile = false;
+      });
+      print('=== _initializeData END (Token found) ===');
+    } else {
+      // No token, just mark loading as complete
+      print('⚠ No customer token found, skipping bookings fetch');
+      setState(() {
+        _bookingsFuture = Future.value([]); // Empty list
+        _isLoadingProfile = false;
+      });
+      print('=== _initializeData END (No token) ===');
+    }
   }
 
   Future<void> _loadCustomerInfo() async {
     try {
       print('=== _loadCustomerInfo START ===');
+      print('MyAppState.customerProfile value: ${MyAppState.customerProfile}');
 
       // First check if customer profile was already loaded at app startup
       if (MyAppState.customerProfile != null) {
@@ -61,11 +98,66 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         return;
       }
 
-      // If not preloaded, fetch from API
+      // If not in MyAppState, try to restore from SharedPreferences cache
+      final prefs = await SharedPreferences.getInstance();
+      final cachedProfile = prefs.getString('cached_customer_profile');
+      final customerToken = prefs.getString('customer_token');
+
+      print('=== CHECKING SHARED PREFERENCES ===');
+      print(
+          'cached_customer_profile exists: ${cachedProfile != null && cachedProfile.isNotEmpty}');
+      print(
+          'customer_token exists: ${customerToken != null && customerToken.isNotEmpty}');
+      if (customerToken != null) {
+        print('customer_token value: ${customerToken.substring(0, 20)}...');
+      }
+      print('===================================');
+
+      if (cachedProfile != null && cachedProfile.isNotEmpty) {
+        try {
+          print('✓ Found cached customer profile in SharedPreferences');
+          final profileData = jsonDecode(cachedProfile) as Map<String, dynamic>;
+          setState(() {
+            if (profileData.containsKey('pkey') ||
+                profileData.containsKey('photobase64')) {
+              _currentCustomer = Customer.fromJson(profileData);
+              print('✓ Created customer from cached profile using fromJson');
+            } else {
+              _currentCustomer = Customer(
+                customerkey: profileData['customerkey'] ?? 0,
+                fullname: profileData['fullname'] ?? 'Guest',
+                email: profileData['email'] ?? '',
+                phone: profileData['phone'] ?? '',
+                photo: profileData['photo'] ?? '',
+                dob: profileData['dob'] ?? '',
+              );
+              print(
+                  '✓ Created customer from cached profile using direct mapping');
+            }
+            // Restore to MyAppState for other screens
+            MyAppState.customerProfile = profileData;
+            print(
+                'Customer from cache: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
+          });
+          print('=== _loadCustomerInfo END (Cached) ===');
+          return;
+        } catch (e) {
+          print('Error parsing cached profile: $e');
+          // Continue to API fetch if cache parsing fails
+        }
+      }
+
+      // If not preloaded and not cached, fetch from API
       final profileData = await apiManager.fetchCustomerProfile();
 
       if (profileData != null) {
         print('✓ Loaded customer profile from API: $profileData');
+
+        // Store in SharedPreferences cache for persistence
+        await prefs.setString(
+            'cached_customer_profile', jsonEncode(profileData));
+        print('✓ Customer profile cached in SharedPreferences');
+
         setState(() {
           // Use Customer.fromJson if the backend sends pkey/photobase64
           // Otherwise map directly
@@ -84,6 +176,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             );
             print('✓ Created customer using direct mapping');
           }
+          // Store in MyAppState for other screens
+          MyAppState.customerProfile = profileData;
           print(
               'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
         });
@@ -173,7 +267,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildProfileSection(BuildContext context, Color color) {
-    if (_currentCustomer == null) {
+    if (_isLoadingProfile || _currentCustomer == null) {
       return const Padding(
         padding: EdgeInsets.all(16.0),
         child: Center(child: CircularProgressIndicator()),
@@ -721,26 +815,27 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   void _handleCancelBooking(Booking booking, BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Cancel Booking'),
           content: const Text('Are you sure you want to cancel this booking?'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
               },
               child: const Text('No'),
             ),
             ElevatedButton(
               onPressed: () async {
-                Navigator.pop(context); // Close dialog
+                // Close confirmation dialog
+                Navigator.pop(dialogContext);
 
                 // Show loading indicator
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (context) => const Center(
+                  builder: (loadingContext) => const Center(
                     child: CircularProgressIndicator(),
                   ),
                 );
@@ -750,38 +845,66 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   final success =
                       await apiManager.cancelCustomerBooking(booking.pkey);
 
-                  if (!mounted) return;
-                  Navigator.pop(context); // Close loading dialog
+                  // Check if widget is still mounted
+                  if (!mounted) {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    return;
+                  }
 
+                  // Close loading dialog
+                  Navigator.of(context, rootNavigator: true).pop();
+
+                  // Show result and refresh list
                   if (success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Booking cancelled successfully'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                    // Refresh the booking list
+                    // Refresh the booking list first
                     setState(() {
                       _bookingsFuture = apiManager.ListBookingsSmart();
                     });
+
+                    // Try to show success message
+                    try {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Booking cancelled successfully'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } catch (e) {
+                      print('Could not show success snackbar: $e');
+                    }
                   } else {
+                    try {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Failed to cancel booking. Please try again.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    } catch (e) {
+                      print('Could not show error snackbar: $e');
+                    }
+                  }
+                } catch (e) {
+                  if (!mounted) {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    return;
+                  }
+
+                  // Close loading dialog
+                  Navigator.of(context, rootNavigator: true).pop();
+
+                  // Try to show error
+                  try {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content:
-                            Text('Failed to cancel booking. Please try again.'),
+                      SnackBar(
+                        content: Text('Error: $e'),
                         backgroundColor: Colors.red,
                       ),
                     );
+                  } catch (e) {
+                    print('Could not show error snackbar: $e');
                   }
-                } catch (e) {
-                  if (!mounted) return;
-                  Navigator.pop(context); // Close loading dialog
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
                 }
               },
               style: ElevatedButton.styleFrom(

@@ -4,6 +4,7 @@ import 'package:salonappweb/api/api_manager.dart';
 import 'package:salonappweb/main.dart';
 import 'home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class CustomerLoginPage extends StatefulWidget {
   const CustomerLoginPage({super.key});
@@ -13,34 +14,18 @@ class CustomerLoginPage extends StatefulWidget {
 }
 
 class _CustomerLoginPageState extends State<CustomerLoginPage> {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _usernameController =
+      TextEditingController(text: 'le160483@gmail.com');
+  final TextEditingController _passwordController =
+      TextEditingController(text: '111111');
   bool _obscurePassword = true;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _clearAllData();
-  }
-
-  Future<void> _clearAllData() async {
-    print('=== CLEARING ALL STORED DATA ===');
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      // Clear customer-related data
-      await prefs.remove('customer_token');
-      await prefs.remove('customer_key');
-
-      // Clear any app state
-      MyAppState.customerProfile = null;
-
-      print('✓ All customer data cleared');
-      print('================================');
-    } catch (e) {
-      print('✗ Error clearing data: $e');
-    }
+    // Don't clear data automatically - only clear on explicit logout
+    // This prevents losing customer token on page refresh (F5)
   }
 
   @override
@@ -259,11 +244,21 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
         if (profileData != null) {
           // Store customer profile in MyAppState
           MyAppState.customerProfile = profileData;
-          print('✓ Customer profile loaded and stored');
+          print('✓ Customer profile loaded and stored in MyAppState');
+
+          // Cache profile in SharedPreferences for persistence across page reloads
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(
+              'cached_customer_profile', jsonEncode(profileData));
+          print('✓ Customer profile cached in SharedPreferences');
         } else {
           print('⚠ Could not load customer profile, using login data');
           // Fallback: use login result as profile
           MyAppState.customerProfile = result;
+
+          // Cache the login result as profile
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('cached_customer_profile', jsonEncode(result));
         }
 
         if (!mounted) return;
@@ -564,6 +559,12 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                           // Store customer profile in MyAppState
                           MyAppState.customerProfile = profileData;
                           print('✓ Customer profile loaded after registration');
+
+                          // Cache profile in SharedPreferences for persistence
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setString('cached_customer_profile',
+                              jsonEncode(profileData));
+                          print('✓ Customer profile cached after registration');
                         }
 
                         // Close loading dialog
