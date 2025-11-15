@@ -240,6 +240,48 @@ class MyHttp {
     }
   }
 
+  /// Send booking confirmation email
+  Future<bool> sendBookingConfirmationEmail({
+    required String bookingKey,
+    required String customerEmail,
+    required String customerName,
+  }) async {
+    try {
+      print('=== SENDING BOOKING CONFIRMATION EMAIL ===');
+      print('Booking key: $bookingKey');
+      print('Customer email: $customerEmail');
+      print('Customer name: $customerName');
+
+      final emailData = <String, String>{
+        'bookingkey': bookingKey,
+        'customeremail': customerEmail,
+        'customername': customerName,
+      };
+
+      final response = await http.post(
+        Uri.parse(AppConfig.api_url_booking_send_confirmation),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(emailData),
+      );
+
+      print('Email response status: ${response.statusCode}');
+      print('Email response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        print('✓ Booking confirmation email sent successfully');
+        return true;
+      } else {
+        print('✗ Failed to send confirmation email: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('✗ Exception sending confirmation email: $e');
+      return false;
+    }
+  }
+
   Future<bool> deleteBooking(int bookingId) async {
     try {
       // Get current user and token
@@ -354,8 +396,35 @@ class MyHttp {
         }
 
         print('Parsed ${data.length} bookings from response');
-        final bookings =
-            data.map<Booking>((item) => Booking.fromJson(item)).toList();
+        
+        // Get customerkey from stored profile for customer API bookings
+        final cachedProfile = prefs.getString('cached_customer_profile');
+        int? storedCustomerKey;
+        if (cachedProfile != null && cachedProfile.isNotEmpty) {
+          try {
+            final profileData = jsonDecode(cachedProfile) as Map<String, dynamic>;
+            storedCustomerKey = profileData['customerkey'] ?? profileData['pkey'];
+            print('✓ Stored customer key from profile: $storedCustomerKey');
+          } catch (e) {
+            print('Could not parse cached profile for customerkey: $e');
+          }
+        }
+        
+        // Add customerkey to each booking if missing
+        final bookingsWithCustomerKey = data.map((item) {
+          if (item is Map<String, dynamic>) {
+            // If customerkey is missing or null, add it from stored profile
+            if (item['customerkey'] == null && storedCustomerKey != null) {
+              item['customerkey'] = storedCustomerKey;
+              print('✓ Added missing customerkey=$storedCustomerKey to booking pkey=${item['pkey']}');
+            }
+          }
+          return item;
+        }).toList();
+        
+        final bookings = bookingsWithCustomerKey
+            .map<Booking>((item) => Booking.fromJson(item))
+            .toList();
         print('✓ Successfully created ${bookings.length} Booking objects');
         return bookings;
       } else {

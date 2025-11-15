@@ -20,4 +20,6 @@ class AppConfig {
       '$api_url/api/booking/customer/register-member';
   static const api_url_customer_register =
       '$api_url/api/booking/customer/register';
+  static const api_url_booking_send_confirmation =
+      '$api_url/api/booking/send-confirmation';
 }

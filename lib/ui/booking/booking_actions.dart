@@ -61,6 +61,24 @@ Future<void> saveBooking(
     print('Booking Key: ${result.bookingkey}');
     print('Customer Key: ${result.customerkey}');
 
+    // Send booking confirmation email
+    if (customerEmail.isNotEmpty) {
+      print('=== SENDING CONFIRMATION EMAIL ===');
+      final emailSent = await apiManager.sendBookingConfirmationEmail(
+        bookingKey: result.bookingkey.toString(),
+        customerEmail: customerEmail,
+        customerName: customerName,
+      );
+      
+      if (emailSent) {
+        print('✓ Booking confirmation email sent to $customerEmail');
+      } else {
+        print('✗ Failed to send booking confirmation email');
+      }
+    } else {
+      print('⚠ No customer email provided, skipping confirmation email');
+    }
+
     // Fetch and cache customer profile
     final prefs = await SharedPreferences.getInstance();
     final profile = await apiManager.fetchCustomerProfile();
