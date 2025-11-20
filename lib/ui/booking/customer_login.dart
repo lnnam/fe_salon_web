@@ -339,9 +339,9 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
     final dobController = TextEditingController();
     final passwordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
-    bool _obscurePassword = true;
-    bool _obscureConfirmPassword = true;
-    String? _errorMessage;
+    bool obscurePassword = true;
+    bool obscureConfirmPassword = true;
+    String? errorMessage;
 
     showDialog(
       context: context,
@@ -429,20 +429,20 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: passwordController,
-                      obscureText: _obscurePassword,
+                      obscureText: obscurePassword,
                       decoration: InputDecoration(
                         labelText: 'Password *',
                         border: const OutlineInputBorder(),
                         prefixIcon: const Icon(Icons.lock),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword
+                            obscurePassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
                           ),
                           onPressed: () {
                             setDialogState(() {
-                              _obscurePassword = !_obscurePassword;
+                              obscurePassword = !obscurePassword;
                             });
                           },
                         ),
@@ -451,21 +451,21 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: confirmPasswordController,
-                      obscureText: _obscureConfirmPassword,
+                      obscureText: obscureConfirmPassword,
                       decoration: InputDecoration(
                         labelText: 'Confirm Password *',
                         border: const OutlineInputBorder(),
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscureConfirmPassword
+                            obscureConfirmPassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
                           ),
                           onPressed: () {
                             setDialogState(() {
-                              _obscureConfirmPassword =
-                                  !_obscureConfirmPassword;
+                              obscureConfirmPassword =
+                                  !obscureConfirmPassword;
                             });
                           },
                         ),
@@ -473,7 +473,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                     ),
                     const SizedBox(height: 8),
                     // Error message banner at bottom
-                    if (_errorMessage != null) ...[
+                    if (errorMessage != null) ...[
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
@@ -490,7 +490,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                _errorMessage!,
+                                errorMessage!,
                                 style: TextStyle(
                                   color: Colors.red[700],
                                   fontSize: 13,
@@ -519,31 +519,31 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                   onPressed: () async {
                     // Clear previous error
                     setDialogState(() {
-                      _errorMessage = null;
+                      errorMessage = null;
                     });
 
                     // Validate inputs
                     if (nameController.text.trim().isEmpty) {
                       setDialogState(() {
-                        _errorMessage = 'Please enter your name';
+                        errorMessage = 'Please enter your name';
                       });
                       return;
                     }
                     if (emailController.text.trim().isEmpty) {
                       setDialogState(() {
-                        _errorMessage = 'Please enter your email';
+                        errorMessage = 'Please enter your email';
                       });
                       return;
                     }
                     if (passwordController.text.isEmpty) {
                       setDialogState(() {
-                        _errorMessage = 'Please set a password';
+                        errorMessage = 'Please set a password';
                       });
                       return;
                     }
                     if (passwordController.text.length < 6) {
                       setDialogState(() {
-                        _errorMessage =
+                        errorMessage =
                             'Password must be at least 6 characters';
                       });
                       return;
@@ -551,7 +551,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                     if (passwordController.text !=
                         confirmPasswordController.text) {
                       setDialogState(() {
-                        _errorMessage = 'Passwords do not match';
+                        errorMessage = 'Passwords do not match';
                       });
                       return;
                     }
@@ -650,7 +650,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
 
                       // Show error in dialog
                       setDialogState(() {
-                        _errorMessage = 'Failed to create account: $e';
+                        errorMessage = 'Failed to create account: $e';
                       });
                     }
                   },
