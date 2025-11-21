@@ -8,6 +8,7 @@ import 'package:salonappweb/ui/login.dart';
 import 'package:salonappweb/ui/logout.dart';
 import 'package:salonappweb/ui/dashboard.dart';
 import 'package:salonappweb/model/user.dart';
+import 'package:salonappweb/config/app_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:salonappweb/ui/pos/home.dart';
 import 'package:salonappweb/ui/booking/home.dart';
@@ -23,6 +24,9 @@ void main() async {
   await EasyLocalization.ensureInitialized();
   //runApp(const MyApp());
   await EasyLocalization.ensureInitialized();
+
+  // Log the API base URL from AppConfig for debugging
+  print('API base url: ${AppConfig.api_url}');
 
   runApp(
     EasyLocalization(
@@ -87,7 +91,7 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   Future<Map<String, dynamic>?> _fetchCustomerProfile(String token) async {
     final response = await http.get(
-      Uri.parse('http://83.136.248.80:8080/api/booking/customer/profile'),
+      Uri.parse(AppConfig.api_url_customer_profile),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json; charset=UTF-8',

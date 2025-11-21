@@ -57,7 +57,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
       'serviceDuration': newBooking.serviceDuration,
     };
 
-    print('Formatted schedule data: $scheduleData');
+   // print('Formatted schedule data: $scheduleData');
 
     Provider.of<BookingProvider>(context, listen: false)
         .setSchedule(scheduleData);
@@ -139,7 +139,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
       serviceDuration: 45,
     );
 
-    print('fetchAvailability result: $response'); // Debug print
+   // print('fetchAvailability result: $response'); // Debug print
 
     final List<DateTimeRange> busySlots = [];
     final now = DateTime.now();
@@ -160,8 +160,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
           // Mark as busy (red) if unavailable from API OR if slot is in the past
           if (slot['available'] == false || slotStart.isBefore(now)) {
             busySlots.add(DateTimeRange(start: slotStart, end: slotEnd));
-            print(
-                'Busy/grey slot: ${slotStart.toIso8601String()} - ${slotEnd.toIso8601String()}');
+           // print( 'Busy/grey slot: ${slotStart.toIso8601String()} - ${slotEnd.toIso8601String()}');
           }
         }
       }

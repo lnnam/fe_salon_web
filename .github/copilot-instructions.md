@@ -19,7 +19,7 @@ Flutter-based salon management application supporting web, iOS, Android, macOS, 
 ### API Integration
 - `lib/api/api_manager.dart` exposes `apiManager` singleton (currently `MyHttp()`)
 - Pluggable architecture: swap `LocalData()`, `CustomBackend()`, or `FireStoreUtils()` by changing `apiManager` declaration
-- All API endpoints in `lib/config/app_config.dart` with `api_url` base pointing to `http://83.136.248.80:8080`
+- All API endpoints in `lib/config/app_config.dart` with `api_url` base pointing to `https://apiclient.greatyarmouthnails.com`
 - Bearer token auth: Retrieved from `SharedPreferences` and added to headers in `fetchFromServer()`
 - Error handling: 401 responses throw session expiry messages
 
