@@ -12,10 +12,8 @@ class GuestLoginPage extends StatefulWidget {
 }
 
 class _GuestLoginPageState extends State<GuestLoginPage> {
-  final TextEditingController _emailController =
-      TextEditingController(text: 'lnnam@yahoo.com');
-  final TextEditingController _phoneController =
-      TextEditingController(text: '077999999');
+    final TextEditingController _emailController = TextEditingController();
+    final TextEditingController _phoneController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override

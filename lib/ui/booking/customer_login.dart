@@ -16,10 +16,8 @@ class CustomerLoginPage extends StatefulWidget {
 }
 
 class _CustomerLoginPageState extends State<CustomerLoginPage> {
-  final TextEditingController _usernameController =
-      TextEditingController(text: 'le160483@gmail.com');
-  final TextEditingController _passwordController =
-      TextEditingController(text: '111111');
+    final TextEditingController _usernameController = TextEditingController();
+    final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 

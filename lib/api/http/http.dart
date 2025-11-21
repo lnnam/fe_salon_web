@@ -8,6 +8,7 @@ import 'package:salonappweb/model/staff.dart';
 import 'package:salonappweb/model/service.dart';
 import 'package:salonappweb/model/customer.dart';
 import 'package:salonappweb/services/helper.dart';
+import 'package:salonappweb/services/app_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MyHttp {
@@ -55,12 +56,12 @@ class MyHttp {
     String? token;
     if (customerToken != null && customerToken.isNotEmpty) {
       token = customerToken;
-      print('✓ Using customer token for API call');
+      appLog('✓ Using customer token for API call');
     } else {
       // Fallback to admin token if available
       final User currentUser = await getCurrentUser();
       token = currentUser.token;
-      print('✓ Using admin token for API call');
+      appLog('✓ Using admin token for API call');
     }
 
     final Map<String, String> headers = {
@@ -100,28 +101,28 @@ class MyHttp {
   // Smart method that uses customer token by default
   Future<List<Booking>> ListBookingsSmart() async {
     try {
-      print('=== ListBookingsSmart START ===');
+      appLog('=== ListBookingsSmart START ===');
 
       // Check if customer token exists
       final prefs = await SharedPreferences.getInstance();
       final String? customerToken = prefs.getString('customer_token');
 
-      print(
+        appLog(
           'Customer token exists: ${customerToken != null && customerToken.isNotEmpty}');
 
       if (customerToken != null && customerToken.isNotEmpty) {
         // Use customer bookings API
-        print('✓ Using customer bookings API');
+        appLog('✓ Using customer bookings API');
         final bookings = await fetchCustomerBookings();
-        print('✓ Customer API returned ${bookings.length} bookings');
+        appLog('✓ Customer API returned ${bookings.length} bookings');
         return bookings;
       } else {
         // No customer token - return empty list or throw error
-        print('✗ No customer token found');
+        appLog('✗ No customer token found');
         throw 'Please log in to view bookings';
       }
     } catch (error) {
-      print('✗ Error in ListBookingsSmart: $error');
+      appLog('✗ Error in ListBookingsSmart: $error');
       rethrow;
     }
   }
@@ -133,7 +134,7 @@ class MyHttp {
       return data.map<Staff>((item) => Staff.fromJson(item)).toList();
     } catch (error) {
       // Handle error
-      print(error);
+      appLog(error);
 
       rethrow;
     }
@@ -147,7 +148,7 @@ class MyHttp {
       return data.map<Customer>((item) => Customer.fromJson(item)).toList();
     } catch (error) {
       // Handle error
-      print(error);
+      appLog(error);
 
       rethrow;
     }
@@ -160,7 +161,7 @@ class MyHttp {
       return data.map<Service>((item) => Service.fromJson(item)).toList();
     } catch (error) {
       // Handle error
-      print(error);
+      appLog(error);
       rethrow;
     }
   }
@@ -199,11 +200,11 @@ class MyHttp {
         'userkey': '1',
       };
 
-      print('=== SUBMITTING BOOKING ===');
-      print('URL: ${AppConfig.api_url_bookingweb_save}');
-      print('Data being posted:');
-      print(jsonEncode(bookingData));
-      print('========================');
+      appLog('=== SUBMITTING BOOKING ===');
+      appLog('URL: ${AppConfig.api_url_bookingweb_save}');
+      appLog('Data being posted:');
+      appLog(jsonEncode(bookingData));
+      appLog('========================');
 
       final response = await http.post(
         Uri.parse(AppConfig.api_url_bookingweb_save),
@@ -213,8 +214,8 @@ class MyHttp {
         body: jsonEncode(bookingData),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      appLog('Response status: ${response.statusCode}');
+      appLog('Response body: ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -225,17 +226,17 @@ class MyHttp {
         await prefs.setString('customer_token', bookingResponse.token);
         await prefs.setString('customer_key', bookingResponse.customerkey);
 
-        print('Token stored: ${bookingResponse.token}');
-        print('Customer key: ${bookingResponse.customerkey}');
-        print('Booking key: ${bookingResponse.bookingkey}');
+        appLog('Token stored: ${bookingResponse.token}');
+        appLog('Customer key: ${bookingResponse.customerkey}');
+        appLog('Booking key: ${bookingResponse.bookingkey}');
 
         return bookingResponse;
       } else {
-        print('Error: ${response.statusCode}, Response: ${response.body}');
+        appLog('Error: ${response.statusCode}, Response: ${response.body}');
         return null;
       }
     } catch (e) {
-      print('Exception during SaveBooking: $e');
+      appLog('Exception during SaveBooking: $e');
       return null;
     }
   }
@@ -247,10 +248,10 @@ class MyHttp {
     required String customerName,
   }) async {
     try {
-      print('=== SENDING BOOKING CONFIRMATION EMAIL ===');
-      print('Booking key: $bookingKey');
-      print('Customer email: $customerEmail');
-      print('Customer name: $customerName');
+      appLog('=== SENDING BOOKING CONFIRMATION EMAIL ===');
+      appLog('Booking key: $bookingKey');
+      appLog('Customer email: $customerEmail');
+      appLog('Customer name: $customerName');
 
       final emailData = <String, String>{
         'bookingkey': bookingKey,
@@ -266,18 +267,18 @@ class MyHttp {
         body: jsonEncode(emailData),
       );
 
-      print('Email response status: ${response.statusCode}');
-      print('Email response body: ${response.body}');
+      appLog('Email response status: ${response.statusCode}');
+      appLog('Email response body: ${response.body}');
 
       if (response.statusCode == 200) {
-        print('✓ Booking confirmation email sent successfully');
+        appLog('✓ Booking confirmation email sent successfully');
         return true;
       } else {
-        print('✗ Failed to send confirmation email: ${response.statusCode}');
+        appLog('✗ Failed to send confirmation email: ${response.statusCode}');
         return false;
       }
     } catch (e) {
-      print('✗ Exception sending confirmation email: $e');
+      appLog('✗ Exception sending confirmation email: $e');
       return false;
     }
   }
@@ -300,11 +301,11 @@ class MyHttp {
         // Successfully deleted
         return true;
       } else {
-        print('Delete failed: ${response.statusCode}, ${response.body}');
+        appLog('Delete failed: ${response.statusCode}, ${response.body}');
         return false;
       }
     } catch (e) {
-      print('Delete error: $e');
+      appLog('Delete error: $e');
       return false;
     }
   }
@@ -315,16 +316,16 @@ class MyHttp {
       final prefs = await SharedPreferences.getInstance();
       final String? token = prefs.getString('customer_token');
 
-      print('=== FETCH CUSTOMER PROFILE START ===');
-      print('Customer token exists: ${token != null && token.isNotEmpty}');
+      appLog('=== FETCH CUSTOMER PROFILE START ===');
+      appLog('Customer token exists: ${token != null && token.isNotEmpty}');
 
       if (token == null || token.isEmpty) {
-        print('No customer token found in SharedPreferences');
+        appLog('No customer token found in SharedPreferences');
         return null;
       }
 
-      print('Using token: ${token.substring(0, 20)}...');
-      print('Calling: ${AppConfig.api_url_customer_profile}');
+      appLog('Using token: ${token.substring(0, 20)}...');
+      appLog('Calling: ${AppConfig.api_url_customer_profile}');
 
       final response = await http.get(
         Uri.parse(AppConfig.api_url_customer_profile),
@@ -334,18 +335,18 @@ class MyHttp {
         },
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-      print('=== FETCH CUSTOMER PROFILE END ===');
+      appLog('Response status: ${response.statusCode}');
+      appLog('Response body: ${response.body}');
+      appLog('=== FETCH CUSTOMER PROFILE END ===');
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
-        print('Fetch profile failed: ${response.statusCode}');
+        appLog('Fetch profile failed: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('Fetch profile error: $e');
+      appLog('Fetch profile error: $e');
       return null;
     }
   }
@@ -356,16 +357,16 @@ class MyHttp {
       final prefs = await SharedPreferences.getInstance();
       final String? token = prefs.getString('customer_token');
 
-      print('=== FETCH CUSTOMER BOOKINGS START ===');
-      print('Customer token exists: ${token != null && token.isNotEmpty}');
+      appLog('=== FETCH CUSTOMER BOOKINGS START ===');
+      appLog('Customer token exists: ${token != null && token.isNotEmpty}');
 
       if (token == null || token.isEmpty) {
-        print('No customer token found in SharedPreferences');
+        appLog('No customer token found in SharedPreferences');
         return [];
       }
 
-      print('Using token: ${token.substring(0, 20)}...');
-      print('Calling: ${AppConfig.api_url_customer_bookings}');
+      appLog('Using token: ${token.substring(0, 20)}...');
+      appLog('Calling: ${AppConfig.api_url_customer_bookings}');
 
       final response = await http.get(
         Uri.parse(AppConfig.api_url_customer_bookings),
@@ -375,13 +376,13 @@ class MyHttp {
         },
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-      print('=== FETCH CUSTOMER BOOKINGS END ===');
+      appLog('Response status: ${response.statusCode}');
+      appLog('Response body: ${response.body}');
+      appLog('=== FETCH CUSTOMER BOOKINGS END ===');
 
       if (response.statusCode == 200) {
         final dynamic responseData = jsonDecode(response.body);
-        print('Response data type: ${responseData.runtimeType}');
+        appLog('Response data type: ${responseData.runtimeType}');
 
         List<dynamic> data;
         if (responseData is List) {
@@ -391,11 +392,11 @@ class MyHttp {
         } else if (responseData is Map && responseData['data'] != null) {
           data = responseData['data'] as List;
         } else {
-          print('✗ Unexpected response format: $responseData');
+          appLog('✗ Unexpected response format: $responseData');
           return [];
         }
 
-        print('Parsed ${data.length} bookings from response');
+        appLog('Parsed ${data.length} bookings from response');
         
         // Get customerkey from stored profile for customer API bookings
         final cachedProfile = prefs.getString('cached_customer_profile');
@@ -404,19 +405,19 @@ class MyHttp {
           try {
             final profileData = jsonDecode(cachedProfile) as Map<String, dynamic>;
             storedCustomerKey = profileData['customerkey'] ?? profileData['pkey'];
-            print('✓ Stored customer key from profile: $storedCustomerKey');
+            appLog('✓ Stored customer key from profile: $storedCustomerKey');
           } catch (e) {
-            print('Could not parse cached profile for customerkey: $e');
+            appLog('Could not parse cached profile for customerkey: $e');
           }
         }
         
         // Add customerkey to each booking if missing
         final bookingsWithCustomerKey = data.map((item) {
-          if (item is Map<String, dynamic>) {
+              if (item is Map<String, dynamic>) {
             // If customerkey is missing or null, add it from stored profile
             if (item['customerkey'] == null && storedCustomerKey != null) {
               item['customerkey'] = storedCustomerKey;
-              print('✓ Added missing customerkey=$storedCustomerKey to booking pkey=${item['pkey']}');
+              appLog('✓ Added missing customerkey=$storedCustomerKey to booking pkey=${item['pkey']}');
             }
           }
           return item;
@@ -425,15 +426,15 @@ class MyHttp {
         final bookings = bookingsWithCustomerKey
             .map<Booking>((item) => Booking.fromJson(item))
             .toList();
-        print('✓ Successfully created ${bookings.length} Booking objects');
+        appLog('✓ Successfully created ${bookings.length} Booking objects');
         return bookings;
       } else {
-        print('Fetch bookings failed: ${response.statusCode}');
+        appLog('Fetch bookings failed: ${response.statusCode}');
         return [];
       }
     } catch (e, stackTrace) {
-      print('Fetch bookings error: $e');
-      print('Stack trace: $stackTrace');
+      appLog('Fetch bookings error: $e');
+      appLog('Stack trace: $stackTrace');
       return [];
     }
   }
@@ -441,25 +442,25 @@ class MyHttp {
   // Cancel booking using customer token
   Future<bool> cancelCustomerBooking(int bookingId) async {
     try {
-      print('=== CANCEL CUSTOMER BOOKING START ===');
-      print('Booking ID: $bookingId');
+      appLog('=== CANCEL CUSTOMER BOOKING START ===');
+      appLog('Booking ID: $bookingId');
 
       final prefs = await SharedPreferences.getInstance();
       final String? customerToken = prefs.getString('customer_token');
 
       if (customerToken == null || customerToken.isEmpty) {
-        print('✗ No customer token found');
+        appLog('✗ No customer token found');
         return false;
       }
 
-      print('✓ Using customer token');
-      print('Calling: ${AppConfig.api_url_booking_del}');
+      appLog('✓ Using customer token');
+      appLog('Calling: ${AppConfig.api_url_booking_del}');
 
       final requestBody = {
         'bookingkey': bookingId,
       };
 
-      print('Request body: ${jsonEncode(requestBody)}');
+      appLog('Request body: ${jsonEncode(requestBody)}');
 
       final response = await http.post(
         Uri.parse(AppConfig.api_url_booking_del),
@@ -470,20 +471,20 @@ class MyHttp {
         body: jsonEncode(requestBody),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-      print('=== CANCEL CUSTOMER BOOKING END ===');
+      appLog('Response status: ${response.statusCode}');
+      appLog('Response body: ${response.body}');
+      appLog('=== CANCEL CUSTOMER BOOKING END ===');
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        print('✓ Booking cancelled successfully');
+        appLog('✓ Booking cancelled successfully');
         return true;
       } else {
-        print('✗ Cancel failed: ${response.statusCode}');
+        appLog('✗ Cancel failed: ${response.statusCode}');
         return false;
       }
     } catch (e, stackTrace) {
-      print('✗ Cancel booking error: $e');
-      print('Stack trace: $stackTrace');
+      appLog('✗ Cancel booking error: $e');
+      appLog('Stack trace: $stackTrace');
       return false;
     }
   }
@@ -495,16 +496,16 @@ class MyHttp {
     required String password,
   }) async {
     try {
-      print('=== CUSTOMER LOGIN START ===');
-      print('Email/Phone: $emailOrPhone');
+      appLog('=== CUSTOMER LOGIN START ===');
+      appLog('Email/Phone: $emailOrPhone');
 
       final loginData = {
         'emailOrPhone': emailOrPhone,
         'password': password,
       };
 
-      print('Calling: ${AppConfig.api_url_customer_login}');
-      print('Request body: ${jsonEncode(loginData)}');
+      appLog('Calling: ${AppConfig.api_url_customer_login}');
+      appLog('Request body: ${jsonEncode(loginData)}');
 
       final response = await http.post(
         Uri.parse(AppConfig.api_url_customer_login),
@@ -514,9 +515,9 @@ class MyHttp {
         body: jsonEncode(loginData),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-      print('=== CUSTOMER LOGIN END ===');
+      appLog('Response status: ${response.statusCode}');
+      appLog('Response body: ${response.body}');
+      appLog('=== CUSTOMER LOGIN END ===');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body) as Map<String, dynamic>;
@@ -527,17 +528,17 @@ class MyHttp {
           await prefs.setString('customer_token', responseData['token']);
           await prefs.setString(
               'customer_key', responseData['customerkey']?.toString() ?? '');
-          print('✓ Customer token stored');
+          appLog('✓ Customer token stored');
         }
 
         return responseData;
       } else {
-        print('✗ Login failed: ${response.statusCode}');
+        appLog('✗ Login failed: ${response.statusCode}');
         return null;
       }
     } catch (e, stackTrace) {
-      print('✗ Customer login error: $e');
-      print('Stack trace: $stackTrace');
+      appLog('✗ Customer login error: $e');
+      appLog('Stack trace: $stackTrace');
       return null;
     }
   }
@@ -553,17 +554,17 @@ class MyHttp {
     String? dob,
   }) async {
     try {
-      print('=== registerMember START ===');
+      appLog('=== registerMember START ===');
 
       final prefs = await SharedPreferences.getInstance();
       final String? customerToken = prefs.getString('customer_token');
 
       if (customerToken == null || customerToken.isEmpty) {
-        print('✗ No customer token found');
+        appLog('✗ No customer token found');
         throw 'Customer token not found. Please login again.';
       }
 
-      print('✓ Customer token found');
+      appLog('✓ Customer token found');
 
       final memberData = <String, dynamic>{
         'customerkey': customerkey,
@@ -574,9 +575,9 @@ class MyHttp {
         'dob': dob ?? '',
       };
 
-      print(
+        appLog(
           'Registering member at: ${AppConfig.api_url_customer_register_member}');
-      print('Data: ${jsonEncode(memberData)}');
+        appLog('Data: ${jsonEncode(memberData)}');
 
       final response = await http.post(
         Uri.parse(AppConfig.api_url_customer_register_member),
@@ -587,30 +588,30 @@ class MyHttp {
         body: jsonEncode(memberData),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      appLog('Response status: ${response.statusCode}');
+      appLog('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
-        print('✓ Member registered successfully');
+        appLog('✓ Member registered successfully');
         final Map<String, dynamic> result = json.decode(response.body);
-        print('=== registerMember END ===');
+        appLog('=== registerMember END ===');
         return result;
       } else if (response.statusCode == 401) {
-        print('✗ Unauthorized - token may be expired');
+        appLog('✗ Unauthorized - token may be expired');
         throw 'Your session has expired. Please log in again.';
       } else if (response.statusCode == 400) {
-        print('✗ Bad request - validation error');
+        appLog('✗ Bad request - validation error');
         final Map<String, dynamic> errorResult = json.decode(response.body);
         throw errorResult['message'] ?? 'Invalid data provided';
       } else if (response.statusCode == 409) {
-        print('✗ Conflict - email already registered');
+        appLog('✗ Conflict - email already registered');
         throw 'This email is already registered as a member';
       } else {
-        print('✗ Request failed with status: ${response.statusCode}');
+        appLog('✗ Request failed with status: ${response.statusCode}');
         throw 'Failed to register member. Status: ${response.statusCode}';
       }
     } catch (error) {
-      print('✗ Error in registerMember: $error');
+      appLog('✗ Error in registerMember: $error');
       rethrow;
     }
   }
@@ -624,7 +625,7 @@ class MyHttp {
     String? dob,
   }) async {
     try {
-      print('=== registerNewCustomer START ===');
+      appLog('=== registerNewCustomer START ===');
 
       final customerData = <String, dynamic>{
         'fullname': fullname,
@@ -634,9 +635,9 @@ class MyHttp {
         'dob': dob ?? '',
       };
 
-      print(
+        appLog(
           'Registering new customer at: ${AppConfig.api_url_customer_register}');
-      print('Data: ${jsonEncode(customerData)}');
+        appLog('Data: ${jsonEncode(customerData)}');
 
       final response = await http.post(
         Uri.parse(AppConfig.api_url_customer_register),
@@ -646,11 +647,11 @@ class MyHttp {
         body: jsonEncode(customerData),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      appLog('Response status: ${response.statusCode}');
+      appLog('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('✓ Customer registered successfully');
+        appLog('✓ Customer registered successfully');
         final Map<String, dynamic> result = json.decode(response.body);
 
         // Store token if returned by backend
@@ -661,24 +662,24 @@ class MyHttp {
             await prefs.setString(
                 'customer_key', result['customerkey'].toString());
           }
-          print('✓ Customer token stored: ${result['token']}');
+          appLog('✓ Customer token stored: ${result['token']}');
         }
 
-        print('=== registerNewCustomer END ===');
+        appLog('=== registerNewCustomer END ===');
         return result;
       } else if (response.statusCode == 400) {
-        print('✗ Bad request - validation error');
+        appLog('✗ Bad request - validation error');
         final Map<String, dynamic> errorResult = json.decode(response.body);
         throw errorResult['message'] ?? 'Invalid data provided';
       } else if (response.statusCode == 409) {
-        print('✗ Conflict - email already registered');
+        appLog('✗ Conflict - email already registered');
         throw 'This email is already registered';
       } else {
-        print('✗ Request failed with status: ${response.statusCode}');
+        appLog('✗ Request failed with status: ${response.statusCode}');
         throw 'Failed to register. Status: ${response.statusCode}';
       }
     } catch (error) {
-      print('✗ Error in registerNewCustomer: $error');
+      appLog('✗ Error in registerNewCustomer: $error');
       rethrow;
     }
   }
@@ -697,12 +698,12 @@ class MyHttp {
       String? token;
       if (customerToken != null && customerToken.isNotEmpty) {
         token = customerToken;
-        print('✓ Using customer token for availability');
+        appLog('✓ Using customer token for availability');
       } else {
         // Fallback to admin token if available
         final User currentUser = await getCurrentUser();
         token = currentUser.token;
-        print('✓ Using admin token for availability');
+        appLog('✓ Using admin token for availability');
       }
 
       final String formattedDate = date.toIso8601String().substring(0, 10);
@@ -742,11 +743,11 @@ class MyHttp {
         // fallback
         return [];
       } else {
-        print('Fetch availability failed: ${response.statusCode}');
+        appLog('Fetch availability failed: ${response.statusCode}');
         return [];
       }
     } catch (e) {
-      print('Error fetching availability: $e');
+      appLog('Error fetching availability: $e');
       return [];
     }
   }

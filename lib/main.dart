@@ -87,7 +87,7 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   Future<Map<String, dynamic>?> _fetchCustomerProfile(String token) async {
     final response = await http.get(
-      Uri.parse('http://localhost:8080/api/booking/customer/profile'),
+      Uri.parse('http://83.136.248.80:8080/api/booking/customer/profile'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json; charset=UTF-8',

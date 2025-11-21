@@ -13,6 +13,7 @@ import 'package:salonappweb/main.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:salonappweb/services/app_logger.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -34,7 +35,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Future<void> _initializeData() async {
-    print('=== _initializeData START ===');
+    appLog('=== _initializeData START ===');
 
     // Load customer info first
     await _loadCustomerInfo();
@@ -43,44 +44,42 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     final customerToken = prefs.getString('customer_token');
 
-    print(
-        'Customer token after _loadCustomerInfo: ${customerToken != null && customerToken.isNotEmpty ? "EXISTS" : "MISSING"}');
-    print(
-        'Current customer after _loadCustomerInfo: ${_currentCustomer?.fullname}');
+    appLog('Customer token after _loadCustomerInfo: ${customerToken != null && customerToken.isNotEmpty ? "EXISTS" : "MISSING"}');
+    appLog('Current customer after _loadCustomerInfo: ${_currentCustomer?.fullname}');
 
     if (customerToken != null && customerToken.isNotEmpty) {
       // Then load bookings after customer profile is loaded
-      print('✓ Customer token found, loading bookings...');
+      appLog('✓ Customer token found, loading bookings...');
       setState(() {
         _bookingsFuture = apiManager.ListBookingsSmart();
         _isLoadingProfile = false;
       });
-      print('=== _initializeData END (Token found) ===');
+      appLog('=== _initializeData END (Token found) ===');
     } else {
       // No token, just mark loading as complete
-      print('⚠ No customer token found, skipping bookings fetch');
+      appLog('⚠ No customer token found, skipping bookings fetch');
       setState(() {
         _bookingsFuture = Future.value([]); // Empty list
         _isLoadingProfile = false;
       });
-      print('=== _initializeData END (No token) ===');
+      appLog('=== _initializeData END (No token) ===');
     }
   }
 
   Future<void> _loadCustomerInfo() async {
     try {
-      print('=== _loadCustomerInfo START ===');
-      print('MyAppState.customerProfile value: ${MyAppState.customerProfile}');
+    appLog('=== _loadCustomerInfo START ===');
+    appLog('MyAppState.customerProfile value: ${MyAppState.customerProfile}');
 
       // First check if customer profile was already loaded at app startup
       if (MyAppState.customerProfile != null) {
-        print('✓ Using preloaded customer profile from MyAppState');
+        appLog('✓ Using preloaded customer profile from MyAppState');
         final profileData = MyAppState.customerProfile!;
         setState(() {
           if (profileData.containsKey('pkey') ||
               profileData.containsKey('photobase64')) {
             _currentCustomer = Customer.fromJson(profileData);
-            print('✓ Created customer using fromJson');
+            appLog('✓ Created customer using fromJson');
           } else {
             _currentCustomer = Customer(
               customerkey: profileData['customerkey'] ?? 0,
@@ -90,10 +89,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               photo: profileData['photo'] ?? '',
               dob: profileData['dob'] ?? '',
             );
-            print('✓ Created customer using direct mapping');
+            appLog('✓ Created customer using direct mapping');
           }
-          print(
-              'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
+            appLog('Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
         });
 
         // Set customer data in BookingProvider for booking flow (after frame to avoid build conflict)
@@ -109,13 +107,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               'phone': profileData['phone'] ?? '',
               'dob': profileData['dob'] ?? '',
             });
-            print('✓ Customer data set in BookingProvider (preloaded)');
+            appLog('✓ Customer data set in BookingProvider (preloaded)');
           } catch (e) {
             print('Could not set customer details in BookingProvider: $e');
           }
         });
 
-        print('=== _loadCustomerInfo END (Preloaded) ===');
+        appLog('=== _loadCustomerInfo END (Preloaded) ===');
         return;
       }
 
@@ -124,25 +122,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       final cachedProfile = prefs.getString('cached_customer_profile');
       final customerToken = prefs.getString('customer_token');
 
-      print('=== CHECKING SHARED PREFERENCES ===');
-      print(
-          'cached_customer_profile exists: ${cachedProfile != null && cachedProfile.isNotEmpty}');
-      print(
-          'customer_token exists: ${customerToken != null && customerToken.isNotEmpty}');
+      appLog('=== CHECKING SHARED PREFERENCES ===');
+      appLog('cached_customer_profile exists: ${cachedProfile != null && cachedProfile.isNotEmpty}');
+      appLog('customer_token exists: ${customerToken != null && customerToken.isNotEmpty}');
       if (customerToken != null) {
-        print('customer_token value: ${customerToken.substring(0, 20)}...');
+        appLog('customer_token value: ${customerToken.substring(0, 20)}...');
       }
-      print('===================================');
+      appLog('===================================');
 
       if (cachedProfile != null && cachedProfile.isNotEmpty) {
-        try {
-          print('✓ Found cached customer profile in SharedPreferences');
+          try {
+          appLog('✓ Found cached customer profile in SharedPreferences');
           final profileData = jsonDecode(cachedProfile) as Map<String, dynamic>;
           setState(() {
             if (profileData.containsKey('pkey') ||
                 profileData.containsKey('photobase64')) {
               _currentCustomer = Customer.fromJson(profileData);
-              print('✓ Created customer from cached profile using fromJson');
+              appLog('✓ Created customer from cached profile using fromJson');
             } else {
               _currentCustomer = Customer(
                 customerkey: profileData['customerkey'] ?? 0,
@@ -152,18 +148,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 photo: profileData['photo'] ?? '',
                 dob: profileData['dob'] ?? '',
               );
-              print(
-                  '✓ Created customer from cached profile using direct mapping');
+              appLog('✓ Created customer from cached profile using direct mapping');
             }
             // Restore to MyAppState for other screens
             MyAppState.customerProfile = profileData;
-            print(
-                'Customer from cache: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
+            appLog('Customer from cache: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
           });
 
           // Set customer data in BookingProvider for booking flow (after frame to avoid build conflict)
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            try {
+              try {
               final bookingProvider =
                   Provider.of<BookingProvider>(context, listen: false);
               bookingProvider.setCustomerDetails({
@@ -175,13 +169,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 'phone': profileData['phone'] ?? '',
                 'dob': profileData['dob'] ?? '',
               });
-              print('✓ Customer data set in BookingProvider (cached)');
+              appLog('✓ Customer data set in BookingProvider (cached)');
             } catch (e) {
-              print('Could not set customer details in BookingProvider: $e');
+              appLog('Could not set customer details in BookingProvider: $e');
             }
           });
 
-          print('=== _loadCustomerInfo END (Cached) ===');
+          appLog('=== _loadCustomerInfo END (Cached) ===');
           return;
         } catch (e) {
           print('Error parsing cached profile: $e');
@@ -193,12 +187,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       final profileData = await apiManager.fetchCustomerProfile();
 
       if (profileData != null) {
-        print('✓ Loaded customer profile from API: $profileData');
+        appLog('✓ Loaded customer profile from API: $profileData');
 
         // Store in SharedPreferences cache for persistence
         await prefs.setString(
             'cached_customer_profile', jsonEncode(profileData));
-        print('✓ Customer profile cached in SharedPreferences');
+        appLog('✓ Customer profile cached in SharedPreferences');
 
         setState(() {
           // Use Customer.fromJson if the backend sends pkey/photobase64
@@ -206,7 +200,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           if (profileData.containsKey('pkey') ||
               profileData.containsKey('photobase64')) {
             _currentCustomer = Customer.fromJson(profileData);
-            print('✓ Created customer using fromJson');
+            appLog('✓ Created customer using fromJson');
           } else {
             _currentCustomer = Customer(
               customerkey: profileData['customerkey'] ?? 0,
@@ -216,17 +210,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               photo: profileData['photo'] ?? '',
               dob: profileData['dob'] ?? '',
             );
-            print('✓ Created customer using direct mapping');
+            appLog('✓ Created customer using direct mapping');
           }
           // Store in MyAppState for other screens
           MyAppState.customerProfile = profileData;
-          print(
-              'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
+            appLog('Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
         });
 
         // Set customer data in BookingProvider for booking flow (after frame to avoid build conflict)
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          try {
+            try {
             final bookingProvider =
                 Provider.of<BookingProvider>(context, listen: false);
             bookingProvider.setCustomerDetails({
@@ -237,21 +230,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               'phone': profileData['phone'] ?? '',
               'dob': profileData['dob'] ?? '',
             });
-            print('✓ Customer data set in BookingProvider (API fetch)');
+            appLog('✓ Customer data set in BookingProvider (API fetch)');
           } catch (e) {
-            print('Could not set customer details in BookingProvider: $e');
+            appLog('Could not set customer details in BookingProvider: $e');
           }
         });
 
-        print('=== _loadCustomerInfo END (API) ===');
+        appLog('=== _loadCustomerInfo END (API) ===');
         return;
       }
 
       // Fallback to admin user
-      print('No customer profile from API, checking admin user...');
+      appLog('No customer profile from API, checking admin user...');
       final user = MyAppState.currentUser;
       if (user != null) {
-        print('✓ Loading customer info from admin user: ${user.username}');
+        appLog('✓ Loading customer info from admin user: ${user.username}');
         setState(() {
           _currentCustomer = Customer(
             customerkey: int.tryParse(user.userkey) ?? 0,
@@ -262,14 +255,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             dob: '',
           );
         });
-        print('=== _loadCustomerInfo END (Admin) ===');
+        appLog('=== _loadCustomerInfo END (Admin) ===');
       } else {
-        print('✗ No admin user found either!');
-        print('=== _loadCustomerInfo END (No Data) ===');
+        appLog('✗ No admin user found either!');
+        appLog('=== _loadCustomerInfo END (No Data) ===');
       }
     } catch (e) {
-      print('✗ Error loading customer info: $e');
-      print('=== _loadCustomerInfo END (Error) ===');
+      appLog('✗ Error loading customer info: $e');
+      appLog('=== _loadCustomerInfo END (Error) ===');
     }
   }
 
@@ -282,7 +275,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             Provider.of<BookingProvider>(context, listen: false);
         bookingProvider.resetBooking();
       } catch (e) {
-        print('Could not reset booking: $e');
+        appLog('Could not reset booking: $e');
       }
     });
 
@@ -536,7 +529,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 child: Center(child: CircularProgressIndicator()),
               );
             } else if (snapshot.hasError) {
-              print('✗ Error loading bookings: ${snapshot.error}');
+              appLog('✗ Error loading bookings: ${snapshot.error}');
               return Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Center(
@@ -560,14 +553,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 ),
               );
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              print('✗ No bookings data');
+              appLog('✗ No bookings data');
               return _buildEmptyState();
             }
 
             // Log all bookings
             for (var booking in snapshot.data!) {
-              print(
-                  'Booking: pkey=${booking.pkey}, customerkey=${booking.customerkey} (${booking.customerkey.runtimeType}), customer=${booking.customername}');
+              appLog('Booking: pkey=${booking.pkey}, customerkey=${booking.customerkey} (${booking.customerkey.runtimeType}), customer=${booking.customername}');
             }
 
             // When using customer token API, bookings are already filtered by backend
@@ -581,26 +573,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
             if (needsFiltering && _currentCustomer != null) {
               // Admin API case: filter by customerkey
-              print('Filtering bookings by customerkey (admin API)');
+              appLog('Filtering bookings by customerkey (admin API)');
               customerBookings = snapshot.data!.where((booking) {
                 final match = booking.customerkey ==
                     _currentCustomer!.customerkey.toString();
-                print(
-                    'Comparing: booking.customerkey="${booking.customerkey}" vs customer.customerkey="${_currentCustomer!.customerkey}" => $match');
+                appLog('Comparing: booking.customerkey="${booking.customerkey}" vs customer.customerkey="${_currentCustomer!.customerkey}" => $match');
                 return match;
               }).toList();
             } else {
               // Customer API case: all bookings are already for this customer
-              print(
-                  'Using all bookings (already filtered by customer token API)');
+              appLog('Using all bookings (already filtered by customer token API)');
               customerBookings = snapshot.data!;
             }
 
-            print(
-                '✓ Final result: ${customerBookings.length} bookings to display');
+            appLog('✓ Final result: ${customerBookings.length} bookings to display');
 
             if (customerBookings.isEmpty) {
-              print('✗ No bookings match current customer');
+              appLog('✗ No bookings match current customer');
               return _buildEmptyState();
             }
 
@@ -913,7 +902,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         ),
                       );
                     } catch (e) {
-                      print('Could not show success snackbar: $e');
+                      appLog('Could not show success snackbar: $e');
                     }
                   } else {
                     try {
@@ -924,8 +913,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           backgroundColor: Colors.red,
                         ),
                       );
-                    } catch (e) {
-                      print('Could not show error snackbar: $e');
+                      } catch (e) {
+                      appLog('Could not show error snackbar: $e');
                     }
                   }
                 } catch (e) {
@@ -1210,7 +1199,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         dob: dobController.text.trim(),
                       );
 
-                      print('Register member result: $result');
+                      appLog('Register member result: $result');
 
                       // Check if widget is still mounted
                       if (!mounted) {
@@ -1247,10 +1236,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           ),
                         );
                       } catch (e) {
-                        print('Could not show success snackbar: $e');
+                        appLog('Could not show success snackbar: $e');
                       }
                     } catch (e) {
-                      print('Error registering member: $e');
+                      appLog('Error registering member: $e');
 
                       if (!mounted) {
                         Navigator.of(context, rootNavigator: true).pop();
