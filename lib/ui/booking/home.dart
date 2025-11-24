@@ -590,10 +590,33 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               return _buildEmptyState();
             }
 
-            // Log all bookings
+            // Log all bookings (individual short lines)
             for (var booking in snapshot.data!) {
               appLog(
                   'Booking: pkey=${booking.pkey}, customerkey=${booking.customerkey} (${booking.customerkey.runtimeType}), customer=${booking.customername}');
+            }
+
+            // Also emit a single JSON-style log with full booking details
+            try {
+              final detailed = snapshot.data!
+                  .map((b) => {
+                        'pkey': b.pkey,
+                        'customerkey': b.customerkey,
+                        'customername': b.customername,
+                        'staffname': b.staffname,
+                        'servicename': b.servicename,
+                        'bookingdate': b.bookingdate,
+                        'bookingstart': b.bookingstart.toIso8601String(),
+                        'created_datetime':
+                            b.created_datetime.toIso8601String(),
+                        'note': b.note,
+                        'status': b.status,
+                      })
+                  .toList();
+
+              appLog('Booking list JSON: ${jsonEncode(detailed)}');
+            } catch (e) {
+              appLog('Could not serialize bookings for JSON log: $e');
             }
 
             // When using customer token API, bookings are already filtered by backend
@@ -636,6 +659,29 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               final dateB = DateTime.parse(b.bookingdate);
               return dateB.compareTo(dateA);
             });
+
+            // Log only the bookings we will display for the current customer
+            try {
+              final customerKey = _currentCustomer != null
+                  ? _currentCustomer!.customerkey.toString()
+                  : 'guest';
+              final custJson = customerBookings
+                  .map((b) => {
+                        'pkey': b.pkey,
+                        'customerkey': b.customerkey,
+                        'customername': b.customername,
+                        'servicename': b.servicename,
+                        'staffname': b.staffname,
+                        'bookingdate': b.bookingdate,
+                        'bookingstart': b.bookingstart.toIso8601String(),
+                        'note': b.note,
+                      })
+                  .toList();
+              appLog(
+                  'Customer ($customerKey) bookings: ${jsonEncode(custJson)}');
+            } catch (e) {
+              appLog('Could not serialize customer bookings: $e');
+            }
 
             return Column(
               children: customerBookings.map((booking) {
@@ -680,6 +726,26 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildBookingCard(Booking booking, Color color, BuildContext context) {
+    // Debug: log full booking data for inspection
+    try {
+      final b = {
+        'pkey': booking.pkey,
+        'customerkey': booking.customerkey,
+        'customername': booking.customername,
+        'staffname': booking.staffname,
+        'servicename': booking.servicename,
+        'bookingdate': booking.bookingdate,
+        'bookingstart': booking.bookingstart.toIso8601String(),
+        'bookingtime': booking.bookingtime.toIso8601String(),
+        'created_datetime': booking.created_datetime.toIso8601String(),
+        'note': booking.note,
+        'status': booking.status,
+      };
+    //  appLog('Booking detail: ${jsonEncode(b)}');
+    } catch (e) {
+      appLog('Could not log booking detail: $e');
+    }
+
     final isPast = isBookingInPast(booking);
 
     return Container(
@@ -721,18 +787,91 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      booking.servicename == 'N/A' ||
-                              booking.servicename == 'Unknown' ||
-                              booking.servicename == 'null' ||
-                              booking.servicename.isEmpty
-                          ? 'Service Booking'
-                          : booking.servicename,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isPast ? Colors.grey[600] : Colors.black87,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            booking.servicename == 'N/A' ||
+                                    booking.servicename == 'Unknown' ||
+                                    booking.servicename == 'null' ||
+                                    booking.servicename.isEmpty
+                                ? 'Service Booking'
+                                : booking.servicename,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isPast ? Colors.grey[600] : Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Booking status chip — show backend status text verbatim when available
+                        Builder(builder: (ctx) {
+                          final rawStatus = booking.status.trim();
+                          final lower = rawStatus.toLowerCase();
+
+                          // Decide color using simple keyword matching, but
+                          // display the backend text exactly as returned when present.
+                          Color statusColor;
+                          if (lower.contains('pending')) {
+                            // Backend 'pending' -> red
+                            statusColor = Colors.red;
+                          } else if (lower.contains('confirm') ||
+                              lower.contains('confirmed')) {
+                            // Backend 'confirm'/'confirmed' -> green (confirmed)
+                            statusColor = Colors.green[700]!;
+                          } else if (lower.contains('cancel')) {
+                            // cancelled stays red (explicit cancellation)
+                            statusColor = Colors.red;
+                          } else if (lower.contains('complete') ||
+                              lower == 'completed' ||
+                              lower == 'done') {
+                            statusColor = Colors.grey;
+                          } else if (lower.contains('upcom') ||
+                              lower == 'upcoming') {
+                            statusColor = Colors.green[700]!;
+                          } else if (rawStatus.isEmpty) {
+                            // No backend status — fallback to note/isPast
+                            final note = booking.note.toLowerCase();
+                            if (note.contains('cancel')) {
+                              statusColor = Colors.red;
+                            } else if (isPast) {
+                              statusColor = Colors.grey;
+                            } else {
+                              statusColor = Colors.green[700]!;
+                            }
+                          } else {
+                            // Unknown backend status text: use neutral color
+                            statusColor = Colors.blueGrey;
+                          }
+
+                          final label = rawStatus.isNotEmpty
+                              ? rawStatus
+                              : (booking.note.toLowerCase().contains('cancel')
+                                  ? 'Cancelled'
+                                  : (isPast ? 'Completed' : 'Upcoming'));
+
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 4, horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: statusColor.withOpacity(0.2)),
+                            ),
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: statusColor,
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(

@@ -17,6 +17,7 @@ class Booking {
   final DateTime bookingstart;
   final String customerphoto;
   final String note;
+  final String status;
 
   Booking({
     required this.pkey, // <-- Add this line
@@ -35,11 +36,13 @@ class Booking {
     required this.bookingtime,
     required this.customerphoto,
     required this.note,
+    this.status = '',
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
     DateTime bookingDateTime;
     String formattedBookingDate = '';
+    // ignore: unused_local_variable
     String formattedBookingTime = '';
 
     if (json['bookingstart'] != null && json['bookingstart'] != '') {
@@ -84,6 +87,7 @@ class Booking {
           ? json['photobase64']
           : 'Unknown',
       note: json['note'] ?? '',
+      status: json['status'] ?? json['booking_status'] ?? '',
     );
   }
 }

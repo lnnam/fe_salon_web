@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:salonappweb/api/api_manager.dart';
 import 'package:salonappweb/services/helper.dart';
+import 'package:salonappweb/services/app_logger.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'home.dart';
 import 'package:salonappweb/main.dart';
@@ -25,21 +26,6 @@ Future<void> saveBooking(
 ) async {
   setLoading(true);
 
-  print({
-    'bookingKey': bookingKey,
-    'customerKey': customerKey,
-    'serviceKey': serviceKey,
-    'staffKey': staffKey,
-    'bookingDate': bookingDate,
-    'bookingTime': bookingTime,
-    'note': note,
-    'customerName': customerName,
-    'staffName': staffName,
-    'serviceName': serviceName,
-    'customerEmail': customerEmail,
-    'customerPhone': customerPhone,
-  });
-
   final result = await apiManager.SaveBooking(
     bookingKey,
     customerKey,
@@ -60,6 +46,11 @@ Future<void> saveBooking(
     print('Token: ${result.token}');
     print('Booking Key: ${result.bookingkey}');
     print('Customer Key: ${result.customerkey}');
+    try {
+      appLog('SaveBooking response: ${jsonEncode(result.toJson())}');
+    } catch (e) {
+      appLog('Could not JSON-encode SaveBooking result: $e');
+    }
 
     // Send booking confirmation email
     if (customerEmail.isNotEmpty) {
@@ -69,7 +60,7 @@ Future<void> saveBooking(
         customerEmail: customerEmail,
         customerName: customerName,
       );
-      
+
       if (emailSent) {
         print('✓ Booking confirmation email sent to $customerEmail');
       } else {
@@ -138,36 +129,117 @@ Future<void> saveBooking(
 
     setLoading(false);
 
+    final dialogMessage = (result.message.isNotEmpty)
+        ? result.message
+        : 'Booking Saved Successfully';
+
+    final dialogTitle = (result.status.isNotEmpty) ? result.status : 'Success';
+
+    // Map status to color for the dialog accent
+    Color statusColor;
+    final lower = result.status.toLowerCase();
+    if (lower.contains('pending')) {
+      statusColor = Colors.red;
+    } else if (lower.contains('confirm') || lower.contains('confirmed')) {
+      statusColor = Colors.green[700]!;
+    } else if (lower.contains('cancel')) {
+      statusColor = Colors.red;
+    } else if (lower.contains('complete') ||
+        lower == 'completed' ||
+        lower == 'done') {
+      statusColor = Colors.grey;
+    } else if (lower.contains('upcom') || lower == 'upcoming') {
+      statusColor = Colors.green[700]!;
+    } else if (result.status.isEmpty) {
+      statusColor = Colors.green[700]!;
+    } else {
+      statusColor = Colors.blueGrey;
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Success"),
-          content: const Text("Booking Saved Successfully"),
-          actions: [
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  print('=== NAVIGATING BACK TO HOME ===');
-                  print(
-                      'MyAppState.customerProfile before navigation: ${MyAppState.customerProfile}');
-                  Navigator.of(context).pop(); // Close dialog
-                  // Use pushAndRemoveUntil to replace all screens and force refresh
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const CustomerHomeScreen()),
-                    (route) => false, // Remove all previous routes
-                  );
-                },
-                child: const Text("OK"),
-              ),
+        return Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: statusColor.withOpacity(0.12),
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(Icons.check_circle_outline,
+                          color: statusColor, size: 28),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        dialogTitle,
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  dialogMessage,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                ),
+                const SizedBox(height: 12),
+                if (result.bookingkey != 0) ...[
+                  Text('Booking ref: ${result.bookingkey}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  const SizedBox(height: 6),
+                ],
+                // Token intentionally not shown in UI for privacy/security
+                // Buttons
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: statusColor,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () {
+                      print('=== NAVIGATING BACK TO HOME ===');
+                      print(
+                          'MyAppState.customerProfile before navigation: ${MyAppState.customerProfile}');
+                      Navigator.of(context).pop(); // Close dialog
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const CustomerHomeScreen()),
+                        (route) => false,
+                      );
+                    },
+                    child: const Text('OK',
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
   } else {
+    appLog('SaveBooking returned null (save failed)');
     setLoading(false);
     showAlertDialog(
       context,

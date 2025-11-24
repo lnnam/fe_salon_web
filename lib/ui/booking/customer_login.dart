@@ -390,7 +390,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
         if (profileData != null) {
           // Store customer profile in MyAppState
           MyAppState.customerProfile = profileData;
-          print('✓ Customer profile loaded and stored in MyAppState');
+        //  print('✓ Customer profile loaded and stored in MyAppState');
 
           // Cache profile in SharedPreferences for persistence across page reloads
           final prefs = await SharedPreferences.getInstance();

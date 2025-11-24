@@ -215,7 +215,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-      appLog('Response body: ${response.body}');
+    //  appLog('Response body: ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -336,7 +336,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-      appLog('Response body: ${response.body}');
+     // appLog('Response body: ${response.body}');
       appLog('=== FETCH CUSTOMER PROFILE END ===');
 
       if (response.statusCode == 200) {
@@ -377,7 +377,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-      appLog('Response body: ${response.body}');
+    //  appLog('Response body: ${response.body}');
       appLog('=== FETCH CUSTOMER BOOKINGS END ===');
 
       if (response.statusCode == 200) {
@@ -419,8 +419,7 @@ class MyHttp {
             // If customerkey is missing or null, add it from stored profile
             if (item['customerkey'] == null && storedCustomerKey != null) {
               item['customerkey'] = storedCustomerKey;
-              appLog(
-                  '✓ Added missing customerkey=$storedCustomerKey to booking pkey=${item['pkey']}');
+              //appLog( '✓ Added missing customerkey=$storedCustomerKey to booking pkey=${item['pkey']}');
             }
           }
           return item;
@@ -475,7 +474,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-      appLog('Response body: ${response.body}');
+     // appLog('Response body: ${response.body}');
       appLog('=== CANCEL CUSTOMER BOOKING END ===');
 
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -519,7 +518,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-      appLog('Response body: ${response.body}');
+    //  appLog('Response body: ${response.body}');
       appLog('=== CUSTOMER LOGIN END ===');
 
       if (response.statusCode == 200) {
@@ -592,7 +591,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-      appLog('Response body: ${response.body}');
+    //  appLog('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         appLog('✓ Member registered successfully');
@@ -651,7 +650,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-      appLog('Response body: ${response.body}');
+      //appLog('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         appLog('✓ Customer registered successfully');
@@ -703,7 +702,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-      appLog('Response body: ${response.body}');
+      //appLog('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         appLog('✓ Reset password request accepted');
