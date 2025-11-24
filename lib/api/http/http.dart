@@ -107,7 +107,7 @@ class MyHttp {
       final prefs = await SharedPreferences.getInstance();
       final String? customerToken = prefs.getString('customer_token');
 
-        appLog(
+      appLog(
           'Customer token exists: ${customerToken != null && customerToken.isNotEmpty}');
 
       if (customerToken != null && customerToken.isNotEmpty) {
@@ -397,32 +397,35 @@ class MyHttp {
         }
 
         appLog('Parsed ${data.length} bookings from response');
-        
+
         // Get customerkey from stored profile for customer API bookings
         final cachedProfile = prefs.getString('cached_customer_profile');
         int? storedCustomerKey;
         if (cachedProfile != null && cachedProfile.isNotEmpty) {
           try {
-            final profileData = jsonDecode(cachedProfile) as Map<String, dynamic>;
-            storedCustomerKey = profileData['customerkey'] ?? profileData['pkey'];
+            final profileData =
+                jsonDecode(cachedProfile) as Map<String, dynamic>;
+            storedCustomerKey =
+                profileData['customerkey'] ?? profileData['pkey'];
             appLog('✓ Stored customer key from profile: $storedCustomerKey');
           } catch (e) {
             appLog('Could not parse cached profile for customerkey: $e');
           }
         }
-        
+
         // Add customerkey to each booking if missing
         final bookingsWithCustomerKey = data.map((item) {
-              if (item is Map<String, dynamic>) {
+          if (item is Map<String, dynamic>) {
             // If customerkey is missing or null, add it from stored profile
             if (item['customerkey'] == null && storedCustomerKey != null) {
               item['customerkey'] = storedCustomerKey;
-              appLog('✓ Added missing customerkey=$storedCustomerKey to booking pkey=${item['pkey']}');
+              appLog(
+                  '✓ Added missing customerkey=$storedCustomerKey to booking pkey=${item['pkey']}');
             }
           }
           return item;
         }).toList();
-        
+
         final bookings = bookingsWithCustomerKey
             .map<Booking>((item) => Booking.fromJson(item))
             .toList();
@@ -575,9 +578,9 @@ class MyHttp {
         'dob': dob ?? '',
       };
 
-        appLog(
+      appLog(
           'Registering member at: ${AppConfig.api_url_customer_register_member}');
-        appLog('Data: ${jsonEncode(memberData)}');
+      appLog('Data: ${jsonEncode(memberData)}');
 
       final response = await http.post(
         Uri.parse(AppConfig.api_url_customer_register_member),
@@ -635,9 +638,9 @@ class MyHttp {
         'dob': dob ?? '',
       };
 
-        appLog(
+      appLog(
           'Registering new customer at: ${AppConfig.api_url_customer_register}');
-        appLog('Data: ${jsonEncode(customerData)}');
+      appLog('Data: ${jsonEncode(customerData)}');
 
       final response = await http.post(
         Uri.parse(AppConfig.api_url_customer_register),
@@ -681,6 +684,37 @@ class MyHttp {
     } catch (error) {
       appLog('✗ Error in registerNewCustomer: $error');
       rethrow;
+    }
+  }
+
+  /// Public endpoint to reset customer password (sends new password to email)
+  Future<bool> resetCustomerPassword({required String email}) async {
+    try {
+      appLog('=== RESET CUSTOMER PASSWORD START ===');
+      appLog('Calling: ${AppConfig.api_url_customer_reset_password}');
+      appLog('Email: $email');
+
+      final response = await http.post(
+        Uri.parse(AppConfig.api_url_customer_reset_password),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, String>{'email': email}),
+      );
+
+      appLog('Response status: ${response.statusCode}');
+      appLog('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        appLog('✓ Reset password request accepted');
+        return true;
+      } else {
+        appLog('✗ Reset password failed: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      appLog('✗ Exception in resetCustomerPassword: $e');
+      return false;
     }
   }
 

@@ -12,6 +12,8 @@ class AppConfig {
       '$api_url/api/booking/getavailability';
   static const api_url_customer_profile =
       '$api_url/api/booking/customer/profile';
+  static const api_url_customer_reset_password =
+      '$api_url/api/booking/customer/reset-password';
   static const api_url_customer_bookings =
       '$api_url/api/booking/customer/bookings';
   static const api_url_customer_login = '$api_url/api/booking/customer/login';

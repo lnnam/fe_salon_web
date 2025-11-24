@@ -10,6 +10,7 @@ import 'summary.dart';
 import 'package:provider/provider.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:salonappweb/main.dart';
+import 'customer_set_member.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -44,8 +45,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     final customerToken = prefs.getString('customer_token');
 
-    appLog('Customer token after _loadCustomerInfo: ${customerToken != null && customerToken.isNotEmpty ? "EXISTS" : "MISSING"}');
-    appLog('Current customer after _loadCustomerInfo: ${_currentCustomer?.fullname}');
+    appLog(
+        'Customer token after _loadCustomerInfo: ${customerToken != null && customerToken.isNotEmpty ? "EXISTS" : "MISSING"}');
+    appLog(
+        'Current customer after _loadCustomerInfo: ${_currentCustomer?.fullname}');
 
     if (customerToken != null && customerToken.isNotEmpty) {
       // Then load bookings after customer profile is loaded
@@ -68,8 +71,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   Future<void> _loadCustomerInfo() async {
     try {
-    appLog('=== _loadCustomerInfo START ===');
-    appLog('MyAppState.customerProfile value: ${MyAppState.customerProfile}');
+      appLog('=== _loadCustomerInfo START ===');
+      appLog('MyAppState.customerProfile value: ${MyAppState.customerProfile}');
 
       // First check if customer profile was already loaded at app startup
       if (MyAppState.customerProfile != null) {
@@ -91,7 +94,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             );
             appLog('✓ Created customer using direct mapping');
           }
-            appLog('Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
+          appLog(
+              'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
         });
 
         // Set customer data in BookingProvider for booking flow (after frame to avoid build conflict)
@@ -123,15 +127,17 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       final customerToken = prefs.getString('customer_token');
 
       appLog('=== CHECKING SHARED PREFERENCES ===');
-      appLog('cached_customer_profile exists: ${cachedProfile != null && cachedProfile.isNotEmpty}');
-      appLog('customer_token exists: ${customerToken != null && customerToken.isNotEmpty}');
+      appLog(
+          'cached_customer_profile exists: ${cachedProfile != null && cachedProfile.isNotEmpty}');
+      appLog(
+          'customer_token exists: ${customerToken != null && customerToken.isNotEmpty}');
       if (customerToken != null) {
         appLog('customer_token value: ${customerToken.substring(0, 20)}...');
       }
       appLog('===================================');
 
       if (cachedProfile != null && cachedProfile.isNotEmpty) {
-          try {
+        try {
           appLog('✓ Found cached customer profile in SharedPreferences');
           final profileData = jsonDecode(cachedProfile) as Map<String, dynamic>;
           setState(() {
@@ -148,16 +154,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 photo: profileData['photo'] ?? '',
                 dob: profileData['dob'] ?? '',
               );
-              appLog('✓ Created customer from cached profile using direct mapping');
+              appLog(
+                  '✓ Created customer from cached profile using direct mapping');
             }
             // Restore to MyAppState for other screens
             MyAppState.customerProfile = profileData;
-            appLog('Customer from cache: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
+            appLog(
+                'Customer from cache: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
           });
 
           // Set customer data in BookingProvider for booking flow (after frame to avoid build conflict)
           WidgetsBinding.instance.addPostFrameCallback((_) {
-              try {
+            try {
               final bookingProvider =
                   Provider.of<BookingProvider>(context, listen: false);
               bookingProvider.setCustomerDetails({
@@ -214,12 +222,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           }
           // Store in MyAppState for other screens
           MyAppState.customerProfile = profileData;
-            appLog('Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
+          appLog(
+              'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
         });
 
         // Set customer data in BookingProvider for booking flow (after frame to avoid build conflict)
         WidgetsBinding.instance.addPostFrameCallback((_) {
-            try {
+          try {
             final bookingProvider =
                 Provider.of<BookingProvider>(context, listen: false);
             bookingProvider.setCustomerDetails({
@@ -462,8 +471,32 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        _showSetMemberDialog(context);
+                      onPressed: () async {
+                        final result = await Navigator.push<Customer?>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CustomerSetMemberPage(
+                                customer: _currentCustomer!),
+                          ),
+                        );
+
+                        if (result != null) {
+                          setState(() {
+                            _currentCustomer = result;
+                          });
+
+                          try {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Member account updated'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } catch (e) {
+                            appLog(
+                                'Could not show snackbar after Set Member: $e');
+                          }
+                        }
                       },
                       icon: const Icon(Icons.person_add, size: 16),
                       label: const Text('Set Member'),
@@ -559,7 +592,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
             // Log all bookings
             for (var booking in snapshot.data!) {
-              appLog('Booking: pkey=${booking.pkey}, customerkey=${booking.customerkey} (${booking.customerkey.runtimeType}), customer=${booking.customername}');
+              appLog(
+                  'Booking: pkey=${booking.pkey}, customerkey=${booking.customerkey} (${booking.customerkey.runtimeType}), customer=${booking.customername}');
             }
 
             // When using customer token API, bookings are already filtered by backend
@@ -577,16 +611,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               customerBookings = snapshot.data!.where((booking) {
                 final match = booking.customerkey ==
                     _currentCustomer!.customerkey.toString();
-                appLog('Comparing: booking.customerkey="${booking.customerkey}" vs customer.customerkey="${_currentCustomer!.customerkey}" => $match');
+                appLog(
+                    'Comparing: booking.customerkey="${booking.customerkey}" vs customer.customerkey="${_currentCustomer!.customerkey}" => $match');
                 return match;
               }).toList();
             } else {
               // Customer API case: all bookings are already for this customer
-              appLog('Using all bookings (already filtered by customer token API)');
+              appLog(
+                  'Using all bookings (already filtered by customer token API)');
               customerBookings = snapshot.data!;
             }
 
-            appLog('✓ Final result: ${customerBookings.length} bookings to display');
+            appLog(
+                '✓ Final result: ${customerBookings.length} bookings to display');
 
             if (customerBookings.isEmpty) {
               appLog('✗ No bookings match current customer');
@@ -913,7 +950,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           backgroundColor: Colors.red,
                         ),
                       );
-                      } catch (e) {
+                    } catch (e) {
                       appLog('Could not show error snackbar: $e');
                     }
                   }
@@ -945,321 +982,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               child: const Text('Yes, Cancel'),
             ),
           ],
-        );
-      },
-    );
-  }
-
-  void _showSetMemberDialog(BuildContext context) {
-    final nameController =
-        TextEditingController(text: _currentCustomer?.fullname);
-    final emailController =
-        TextEditingController(text: _currentCustomer?.email);
-    final phoneController =
-        TextEditingController(text: _currentCustomer?.phone);
-    final dobController = TextEditingController(text: _currentCustomer?.dob);
-    final passwordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
-    bool obscurePassword = true;
-    bool obscureConfirmPassword = true;
-    String? errorMessage;
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Set Member Account'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Complete your profile and set a password to create your member account for future logins.',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-                    // Error message banner
-                    if (errorMessage != null) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.red[50],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red[300]!),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.error_outline,
-                                color: Colors.red[700], size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                errorMessage!,
-                                style: TextStyle(
-                                  color: Colors.red[700],
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Full Name *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.email),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: phoneController,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone Number',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.phone),
-                      ),
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: dobController,
-                      decoration: const InputDecoration(
-                        labelText: 'Date of Birth (YYYY-MM-DD)',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.cake),
-                        hintText: '1990-01-01',
-                      ),
-                      keyboardType: TextInputType.datetime,
-                      onTap: () async {
-                        // Show date picker when field is tapped
-                        FocusScope.of(context).requestFocus(FocusNode());
-                        final pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: dobController.text.isNotEmpty
-                              ? DateTime.tryParse(dobController.text) ??
-                                  DateTime.now()
-                              : DateTime.now(),
-                          firstDate: DateTime(1900),
-                          lastDate: DateTime.now(),
-                        );
-                        if (pickedDate != null) {
-                          dobController.text =
-                              '${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}';
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Set Password for Login',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: passwordController,
-                      obscureText: obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'Password *',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.lock),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () {
-                            setDialogState(() {
-                              obscurePassword = !obscurePassword;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: confirmPasswordController,
-                      obscureText: obscureConfirmPassword,
-                      decoration: InputDecoration(
-                        labelText: 'Confirm Password *',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            obscureConfirmPassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () {
-                            setDialogState(() {
-                              obscureConfirmPassword =
-                                  !obscureConfirmPassword;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '* Required fields',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    // Clear previous error
-                    setDialogState(() {
-                      errorMessage = null;
-                    });
-
-                    // Validate inputs
-                    if (nameController.text.trim().isEmpty) {
-                      setDialogState(() {
-                        errorMessage = 'Please enter your name';
-                      });
-                      return;
-                    }
-                    if (emailController.text.trim().isEmpty) {
-                      setDialogState(() {
-                        errorMessage = 'Please enter your email';
-                      });
-                      return;
-                    }
-                    if (passwordController.text.isEmpty) {
-                      setDialogState(() {
-                        errorMessage = 'Please set a password';
-                      });
-                      return;
-                    }
-                    if (passwordController.text.length < 6) {
-                      setDialogState(() {
-                        errorMessage =
-                            'Password must be at least 6 characters';
-                      });
-                      return;
-                    }
-                    if (passwordController.text !=
-                        confirmPasswordController.text) {
-                      setDialogState(() {
-                        errorMessage = 'Passwords do not match';
-                      });
-                      return;
-                    }
-
-                    // Show loading indicator
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (BuildContext context) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
-                      },
-                    );
-
-                    try {
-                      // Call API to register member
-                      final result = await apiManager.registerMember(
-                        customerkey: _currentCustomer!.customerkey,
-                        fullname: nameController.text.trim(),
-                        email: emailController.text.trim(),
-                        phone: phoneController.text.trim(),
-                        password: passwordController.text,
-                        dob: dobController.text.trim(),
-                      );
-
-                      appLog('Register member result: $result');
-
-                      // Check if widget is still mounted
-                      if (!mounted) {
-                        Navigator.of(context, rootNavigator: true).pop();
-                        return;
-                      }
-
-                      // Update local customer data
-                      setState(() {
-                        _currentCustomer = Customer(
-                          customerkey: _currentCustomer!.customerkey,
-                          fullname: nameController.text.trim(),
-                          email: emailController.text.trim(),
-                          phone: phoneController.text.trim(),
-                          photo: _currentCustomer!.photo,
-                          dob: dobController.text.trim(),
-                        );
-                      });
-
-                      // Close loading dialog
-                      Navigator.of(context, rootNavigator: true).pop();
-                      // Close set member dialog
-                      Navigator.pop(dialogContext);
-
-                      // Try to show success message
-                      try {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Member account created successfully! You can now login with your email and password.',
-                            ),
-                            duration: Duration(seconds: 4),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      } catch (e) {
-                        appLog('Could not show success snackbar: $e');
-                      }
-                    } catch (e) {
-                      appLog('Error registering member: $e');
-
-                      if (!mounted) {
-                        Navigator.of(context, rootNavigator: true).pop();
-                        return;
-                      }
-
-                      // Close loading dialog
-                      Navigator.of(context, rootNavigator: true).pop();
-
-                      // Show error in dialog
-                      setDialogState(() {
-                        errorMessage = 'Failed to create member account: $e';
-                      });
-                    }
-                  },
-                  child: const Text('Save Member'),
-                ),
-              ],
-            );
-          },
         );
       },
     );

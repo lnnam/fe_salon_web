@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'guest_login.dart';
+import 'customer_register.dart';
 import 'package:salonappweb/api/api_manager.dart';
 import 'package:salonappweb/main.dart';
 import 'home.dart';
@@ -16,8 +17,8 @@ class CustomerLoginPage extends StatefulWidget {
 }
 
 class _CustomerLoginPageState extends State<CustomerLoginPage> {
-    final TextEditingController _usernameController = TextEditingController();
-    final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -26,6 +27,147 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
     super.initState();
     // Don't clear data automatically - only clear on explicit logout
     // This prevents losing customer token on page refresh (F5)
+  }
+
+  void _showResetPasswordDialog() {
+    final emailController = TextEditingController();
+    String? errorMessage;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Reset Password'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Enter your account email. A new password will be sent to this email when you submit.',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (errorMessage != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red[300]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline,
+                                color: Colors.red[700], size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                errorMessage!,
+                                style: TextStyle(
+                                  color: Colors.red[700],
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    setDialogState(() {
+                      errorMessage = null;
+                    });
+
+                    final email = emailController.text.trim();
+                    if (email.isEmpty) {
+                      setDialogState(() {
+                        errorMessage = 'Please enter your email';
+                      });
+                      return;
+                    }
+                    if (!email.contains('@')) {
+                      setDialogState(() {
+                        errorMessage = 'Please enter a valid email';
+                      });
+                      return;
+                    }
+
+                    // Show loading indicator
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      },
+                    );
+
+                    try {
+                      final success =
+                          await apiManager.resetCustomerPassword(email: email);
+
+                      // Remove loading
+                      Navigator.pop(context);
+
+                      if (success) {
+                        Navigator.pop(dialogContext);
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(this.context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'A new password has been sent to your email.'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } else {
+                        setDialogState(() {
+                          errorMessage =
+                              'Failed to reset password. Please try again later.';
+                        });
+                      }
+                    } catch (e) {
+                      // Remove loading
+                      Navigator.pop(context);
+                      setDialogState(() {
+                        errorMessage = 'Error: $e';
+                      });
+                    }
+                  },
+                  child: const Text('Send'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -142,7 +284,12 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                     // Register Button
                     TextButton(
                       onPressed: () {
-                        _showRegisterDialog(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const CustomerRegisterPage()),
+                        );
                       },
                       child: const Text(
                         'Register',
@@ -187,11 +334,10 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                     // Forgot Password Button
                     TextButton(
                       onPressed: () {
-                        print('Forgot Password');
-                        // Add navigation to forgot password page
+                        _showResetPasswordDialog();
                       },
                       child: const Text(
-                        'Forgot?',
+                        'Forgot Password?',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.blue,
@@ -328,337 +474,5 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
         });
       }
     }
-  }
-
-  void _showRegisterDialog(BuildContext context) {
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
-    final phoneController = TextEditingController();
-    final dobController = TextEditingController();
-    final passwordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
-    bool obscurePassword = true;
-    bool obscureConfirmPassword = true;
-    String? errorMessage;
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Register New Account'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Create your member account to book appointments and manage your profile.',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Full Name *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.email),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: phoneController,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone Number',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.phone),
-                      ),
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: dobController,
-                      decoration: const InputDecoration(
-                        labelText: 'Date of Birth (YYYY-MM-DD)',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.cake),
-                        hintText: '1990-01-01',
-                      ),
-                      keyboardType: TextInputType.datetime,
-                      onTap: () async {
-                        // Show date picker when field is tapped
-                        FocusScope.of(context).requestFocus(FocusNode());
-                        final pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: dobController.text.isNotEmpty
-                              ? DateTime.tryParse(dobController.text) ??
-                                  DateTime.now()
-                              : DateTime.now(),
-                          firstDate: DateTime(1900),
-                          lastDate: DateTime.now(),
-                        );
-                        if (pickedDate != null) {
-                          dobController.text =
-                              '${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}';
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Set Password',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: passwordController,
-                      obscureText: obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'Password *',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.lock),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () {
-                            setDialogState(() {
-                              obscurePassword = !obscurePassword;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: confirmPasswordController,
-                      obscureText: obscureConfirmPassword,
-                      decoration: InputDecoration(
-                        labelText: 'Confirm Password *',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            obscureConfirmPassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () {
-                            setDialogState(() {
-                              obscureConfirmPassword =
-                                  !obscureConfirmPassword;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    // Error message banner at bottom
-                    if (errorMessage != null) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.red[50],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red[300]!),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.error_outline,
-                                color: Colors.red[700], size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                errorMessage!,
-                                style: TextStyle(
-                                  color: Colors.red[700],
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const Text(
-                      '* Required fields',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    // Clear previous error
-                    setDialogState(() {
-                      errorMessage = null;
-                    });
-
-                    // Validate inputs
-                    if (nameController.text.trim().isEmpty) {
-                      setDialogState(() {
-                        errorMessage = 'Please enter your name';
-                      });
-                      return;
-                    }
-                    if (emailController.text.trim().isEmpty) {
-                      setDialogState(() {
-                        errorMessage = 'Please enter your email';
-                      });
-                      return;
-                    }
-                    if (passwordController.text.isEmpty) {
-                      setDialogState(() {
-                        errorMessage = 'Please set a password';
-                      });
-                      return;
-                    }
-                    if (passwordController.text.length < 6) {
-                      setDialogState(() {
-                        errorMessage =
-                            'Password must be at least 6 characters';
-                      });
-                      return;
-                    }
-                    if (passwordController.text !=
-                        confirmPasswordController.text) {
-                      setDialogState(() {
-                        errorMessage = 'Passwords do not match';
-                      });
-                      return;
-                    }
-
-                    // Show loading indicator
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (BuildContext context) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
-                      },
-                    );
-
-                    try {
-                      // Call API to register new customer (public registration, no token required)
-                      final result = await apiManager.registerNewCustomer(
-                        fullname: nameController.text.trim(),
-                        email: emailController.text.trim(),
-                        phone: phoneController.text.trim(),
-                        password: passwordController.text,
-                        dob: dobController.text.trim(),
-                      );
-
-                      print('Register customer result: $result');
-
-                      // If registration successful and returns token, auto-login
-                      if (result['token'] != null) {
-                        // Fetch full customer profile using the token
-                        final profileData =
-                            await apiManager.fetchCustomerProfile();
-
-                        if (profileData != null) {
-                          // Store customer profile in MyAppState
-                          MyAppState.customerProfile = profileData;
-                          print('✓ Customer profile loaded after registration');
-
-                          // Cache profile in SharedPreferences for persistence
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.setString('cached_customer_profile',
-                              jsonEncode(profileData));
-                          print('✓ Customer profile cached after registration');
-
-                          // Set customer data in BookingProvider for booking flow
-                          final bookingProvider = Provider.of<BookingProvider>(
-                              context,
-                              listen: false);
-                          bookingProvider.setCustomerDetails({
-                            'pkey': profileData['pkey'] ??
-                                profileData['customerkey'],
-                            'customerkey': profileData['pkey'] ??
-                                profileData['customerkey'],
-                            'fullname': profileData['fullname'] ?? 'Guest',
-                            'email': profileData['email'] ?? '',
-                            'phone': profileData['phone'] ?? '',
-                            'dob': profileData['dob'] ?? '',
-                          });
-                          print(
-                              '✓ Customer data set in BookingProvider after registration');
-                        }
-
-                        // Close loading dialog
-                        Navigator.pop(context);
-                        // Close register dialog
-                        Navigator.pop(dialogContext);
-
-                        // Navigate to customer home/profile page
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const CustomerHomeScreen()),
-                        );
-                      } else {
-                        // If no token returned, just show success message and stay on login page
-                        // Close loading dialog
-                        Navigator.pop(context);
-                        // Close register dialog
-                        Navigator.pop(dialogContext);
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Account created successfully! Please login with your email and password.',
-                            ),
-                            duration: Duration(seconds: 4),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      print('Error registering member: $e');
-
-                      // Close loading dialog
-                      Navigator.pop(context);
-
-                      // Show error in dialog
-                      setDialogState(() {
-                        errorMessage = 'Failed to create account: $e';
-                      });
-                    }
-                  },
-                  child: const Text('Register'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
   }
 }

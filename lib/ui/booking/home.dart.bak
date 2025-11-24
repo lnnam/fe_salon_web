@@ -1,0 +1,754 @@
+import 'package:flutter/material.dart';
+import 'package:salonappweb/model/booking.dart';
+import 'package:salonappweb/model/customer.dart';
+import 'package:salonappweb/api/api_manager.dart';
+import 'package:salonappweb/constants.dart';
+import 'package:intl/intl.dart';
+import 'package:salonappweb/ui/booking/staff.dart';
+import 'package:salonappweb/services/helper.dart';
+import 'summary.dart';
+import 'package:provider/provider.dart';
+import 'package:salonappweb/provider/booking.provider.dart';
+import 'package:salonappweb/main.dart';
+import 'customer_set_member.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:salonappweb/services/app_logger.dart';
+
+class CustomerHomeScreen extends StatefulWidget {
+  const CustomerHomeScreen({super.key});
+
+  @override
+  State<CustomerHomeScreen> createState() => _CustomerHomeScreenState();
+}
+
+class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
+  Customer? _currentCustomer;
+  Future<List<Booking>> _bookingsFuture =
+      Future.value([]); // Initialize with empty list
+  bool _isLoadingProfile = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    appLog('=== _initializeData START ===');
+
+    // Load customer info first
+    await _loadCustomerInfo();
+
+    // Check if we have a customer token before trying to load bookings
+    final prefs = await SharedPreferences.getInstance();
+    final customerToken = prefs.getString('customer_token');
+
+    appLog(
+        'Customer token after _loadCustomerInfo: ${customerToken != null && customerToken.isNotEmpty ? "EXISTS" : "MISSING"}');
+
+    if (customerToken != null && customerToken.isNotEmpty) {
+      setState(() {
+        _bookingsFuture = apiManager.ListBookingsSmart();
+        _isLoadingProfile = false;
+      });
+    } else {
+      setState(() {
+        _bookingsFuture = Future.value([]);
+        _isLoadingProfile = false;
+      });
+    }
+
+    appLog('=== _initializeData END ===');
+  }
+
+  Future<void> _loadCustomerInfo() async {
+    try {
+      appLog('=== _loadCustomerInfo START ===');
+      appLog('MyAppState.customerProfile value: ${MyAppState.customerProfile}');
+
+      // First check if customer profile was already loaded at app startup
+      if (MyAppState.customerProfile != null) {
+        appLog('✓ Using preloaded customer profile from MyAppState');
+        final profileData = MyAppState.customerProfile!;
+        setState(() {
+          if (profileData.containsKey('pkey') ||
+              profileData.containsKey('photobase64')) {
+            _currentCustomer = Customer.fromJson(profileData);
+            appLog('✓ Created customer using fromJson');
+          } else {
+            _currentCustomer = Customer(
+              customerkey: profileData['customerkey'] ?? 0,
+              fullname: profileData['fullname'] ?? 'Guest',
+              email: profileData['email'] ?? '',
+              phone: profileData['phone'] ?? '',
+              photo: profileData['photo'] ?? '',
+              dob: profileData['dob'] ?? '',
+            );
+            appLog('✓ Created customer using direct mapping');
+          }
+          appLog(
+              'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
+        });
+
+        // Set customer data in BookingProvider for booking flow (after frame to avoid build conflict)
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          try {
+            final bookingProvider =
+                Provider.of<BookingProvider>(context, listen: false);
+            bookingProvider.setCustomerDetails({
+              'pkey': profileData['pkey'] ?? profileData['customerkey'],
+              'customerkey': profileData['pkey'] ?? profileData['customerkey'],
+              'fullname': profileData['fullname'] ?? 'Guest',
+              'email': profileData['email'] ?? '',
+              'phone': profileData['phone'] ?? '',
+              'dob': profileData['dob'] ?? '',
+            });
+          } catch (e) {
+            appLog('Failed to set booking provider customer details: $e');
+          }
+        });
+      }
+
+  Widget _buildBookingCard(Booking booking, Color color, bool isPast) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isPast ? Colors.grey[100] : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: isPast ? Colors.grey[300]! : color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isPast ? Colors.grey[300] : color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isPast ? Icons.check_circle : Icons.schedule,
+                  color: isPast ? Colors.grey[600] : color,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      booking.servicename == 'N/A' ||
+                              booking.servicename == 'Unknown' ||
+                              booking.servicename == 'null' ||
+                              booking.servicename.isEmpty
+                          ? 'Service Booking'
+                          : booking.servicename,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isPast ? Colors.grey[600] : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${formatBookingTime(booking.bookingtime)} : ${_formatDate(DateTime.parse(booking.bookingdate))}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isPast ? Colors.grey[500] : Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!isPast)
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert, color: Colors.grey[600]),
+                  onSelected: (value) {
+                    if (value == 'change') {
+                      _handleChangeBooking(booking, context);
+                    } else if (value == 'cancel') {
+                      _handleCancelBooking(booking, context);
+                    }
+                  },
+                  itemBuilder: (BuildContext context) => [
+                    const PopupMenuItem<String>(
+                      value: 'change',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 20, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text('Change'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'cancel',
+                      child: Row(
+                        children: [
+                          Icon(Icons.cancel, size: 20, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Cancel'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(color: Colors.grey[300]),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.person, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Text(
+                'Staff: ${booking.staffname}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isPast ? Colors.grey[600] : Colors.grey[700],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.spa, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Service: ${booking.servicename == 'N/A' || booking.servicename == 'Unknown' || booking.servicename == 'null' || booking.servicename.isEmpty ? 'Not specified' : booking.servicename}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isPast ? Colors.grey[600] : Colors.grey[700],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.calendar_month, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Text(
+                'Scheduled: ${_formatDateTime(booking.created_datetime)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ],
+          ),
+          if (!isPast) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      _handleChangeBooking(booking, context);
+                    },
+                    icon: const Icon(Icons.edit, size: 18),
+                    label: const Text('Change'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: color),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      _handleCancelBooking(booking, context);
+                    },
+                    icon: const Icon(Icons.cancel, size: 18),
+                    label: const Text('Cancel'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _handleChangeBooking(Booking booking, BuildContext context) {
+    // Navigate to edit booking
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SummaryPage(booking: booking),
+      ),
+    );
+  }
+
+  void _handleCancelBooking(Booking booking, BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Cancel Booking'),
+          content: const Text('Are you sure you want to cancel this booking?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('No'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Close confirmation dialog
+                Navigator.pop(dialogContext);
+
+                // Show loading indicator
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (loadingContext) => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+
+                try {
+                  // Call API to cancel booking
+                  final success =
+                      await apiManager.cancelCustomerBooking(booking.pkey);
+
+                  // Check if widget is still mounted
+                  if (!mounted) {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    return;
+                  }
+
+                  // Close loading dialog
+                  Navigator.of(context, rootNavigator: true).pop();
+
+                  // Show result and refresh list
+                  if (success) {
+                    // Refresh the booking list first
+                    setState(() {
+                      _bookingsFuture = apiManager.ListBookingsSmart();
+                    });
+
+                    // Try to show success message
+                    try {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Booking cancelled successfully'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } catch (e) {
+                      appLog('Could not show success snackbar: $e');
+                    }
+                  } else {
+                    try {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Failed to cancel booking. Please try again.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    } catch (e) {
+                      appLog('Could not show error snackbar: $e');
+                    }
+                  }
+                } catch (e) {
+                  if (!mounted) {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    return;
+                  }
+
+                  // Close loading dialog
+                  Navigator.of(context, rootNavigator: true).pop();
+
+                  // Try to show error
+                  try {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } catch (e) {
+                    print('Could not show error snackbar: $e');
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: const Text('Yes, Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showSetMemberDialog(BuildContext context) {
+    final nameController =
+        TextEditingController(text: _currentCustomer?.fullname);
+    final emailController =
+        TextEditingController(text: _currentCustomer?.email);
+    final phoneController =
+        TextEditingController(text: _currentCustomer?.phone);
+    final dobController = TextEditingController(text: _currentCustomer?.dob);
+    final passwordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    bool obscurePassword = true;
+    bool obscureConfirmPassword = true;
+    String? errorMessage;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Set Member Account'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Complete your profile and set a password to create your member account for future logins.',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    // Error message banner
+                    if (errorMessage != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red[300]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline,
+                                color: Colors.red[700], size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                errorMessage!,
+                                style: TextStyle(
+                                  color: Colors.red[700],
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Full Name *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: phoneController,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone Number',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.phone),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: dobController,
+                      decoration: const InputDecoration(
+                        labelText: 'Date of Birth (YYYY-MM-DD)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.cake),
+                        hintText: '1990-01-01',
+                      ),
+                      keyboardType: TextInputType.datetime,
+                      onTap: () async {
+                        // Show date picker when field is tapped
+                        FocusScope.of(context).requestFocus(FocusNode());
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: dobController.text.isNotEmpty
+                              ? DateTime.tryParse(dobController.text) ??
+                                  DateTime.now()
+                              : DateTime.now(),
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime.now(),
+                        );
+                        if (pickedDate != null) {
+                          dobController.text =
+                              '${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}';
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Set Password for Login',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: 'Password *',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setDialogState(() {
+                              obscurePassword = !obscurePassword;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: confirmPasswordController,
+                      obscureText: obscureConfirmPassword,
+                      decoration: InputDecoration(
+                        labelText: 'Confirm Password *',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureConfirmPassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setDialogState(() {
+                              obscureConfirmPassword = !obscureConfirmPassword;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '* Required fields',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    // Clear previous error
+                    setDialogState(() {
+                      errorMessage = null;
+                    });
+
+                    // Validate inputs
+                    if (nameController.text.trim().isEmpty) {
+                      setDialogState(() {
+                        errorMessage = 'Please enter your name';
+                      });
+                      return;
+                    }
+                    if (emailController.text.trim().isEmpty) {
+                      setDialogState(() {
+                        errorMessage = 'Please enter your email';
+                      });
+                      return;
+                    }
+                    if (passwordController.text.isEmpty) {
+                      setDialogState(() {
+                        errorMessage = 'Please set a password';
+                      });
+                      return;
+                    }
+                    if (passwordController.text.length < 6) {
+                      setDialogState(() {
+                        errorMessage = 'Password must be at least 6 characters';
+                      });
+                      return;
+                    }
+                    if (passwordController.text !=
+                        confirmPasswordController.text) {
+                      setDialogState(() {
+                        errorMessage = 'Passwords do not match';
+                      });
+                      return;
+                    }
+
+                    // Show loading indicator
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (BuildContext context) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      },
+                    );
+
+                    try {
+                      // Call API to register member
+                      final result = await apiManager.registerMember(
+                        customerkey: _currentCustomer!.customerkey,
+                        fullname: nameController.text.trim(),
+                        email: emailController.text.trim(),
+                        phone: phoneController.text.trim(),
+                        password: passwordController.text,
+                        dob: dobController.text.trim(),
+                      );
+
+                      appLog('Register member result: $result');
+
+                      // Check if widget is still mounted
+                      if (!mounted) {
+                        Navigator.of(context, rootNavigator: true).pop();
+                        return;
+                      }
+
+                      // Update local customer data
+                      setState(() {
+                        _currentCustomer = Customer(
+                          customerkey: _currentCustomer!.customerkey,
+                          fullname: nameController.text.trim(),
+                          email: emailController.text.trim(),
+                          phone: phoneController.text.trim(),
+                          photo: _currentCustomer!.photo,
+                          dob: dobController.text.trim(),
+                        );
+                      });
+
+                      // (No profile sync here — keep original local update only)
+
+                      // Close loading dialog
+                      Navigator.of(context, rootNavigator: true).pop();
+                      // Close set member dialog
+                      Navigator.pop(dialogContext);
+
+                      // Try to show success message
+                      try {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Member account created successfully! You can now login with your email and password.',
+                            ),
+                            duration: Duration(seconds: 4),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } catch (e) {
+                        appLog('Could not show success snackbar: $e');
+                      }
+                    } catch (e) {
+                      appLog('Error registering member: $e');
+
+                      if (!mounted) {
+                        Navigator.of(context, rootNavigator: true).pop();
+                        return;
+                      }
+
+                      // Close loading dialog
+                      Navigator.of(context, rootNavigator: true).pop();
+
+                      // Show error in dialog
+                      setDialogState(() {
+                        errorMessage = 'Failed to create member account: $e';
+                      });
+                    }
+                  },
+                  child: const Text('Save Member'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime dateTime) {
+    return DateFormat('EEEE, d MMMM yyyy').format(dateTime);
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return DateFormat('HH:mm, EEEE, d MMMM').format(dateTime);
+  }
+
+  bool isBookingInPast(Booking booking) {
+    final date = DateTime.parse(booking.bookingdate);
+    final bookingDateTime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      booking.bookingtime.hour,
+      booking.bookingtime.minute,
+    );
+    return bookingDateTime.isBefore(DateTime.now());
+  }
+}
