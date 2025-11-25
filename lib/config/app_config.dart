@@ -1,6 +1,6 @@
 class AppConfig {
-  //static const api_url = 'https://apiclient.greatyarmouthnails.com';
-  static const api_url = 'http://localhost:8080';
+  static const api_url = 'https://apiclient.greatyarmouthnails.com';
+ // static const api_url = 'http://localhost:8080';
   static const api_url_login = '$api_url/api/auth/signin';
   static const api_url_booking_home = '$api_url/api/booking/list';
   static const api_url_booking_staff = '$api_url/api/booking/staff';
@@ -25,4 +25,6 @@ class AppConfig {
       '$api_url/api/booking/customer/register';
   static const api_url_booking_send_confirmation =
       '$api_url/api/booking/send-confirmation';
+  // Application display name
+  static const appName = 'USA NAILS GT-YARMOUTH';
 }

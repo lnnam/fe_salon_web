@@ -13,6 +13,7 @@ import 'package:salonappweb/main.dart';
 import 'customer_set_member.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'package:salonappweb/services/app_logger.dart';
 
@@ -28,11 +29,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Future<List<Booking>> _bookingsFuture =
       Future.value([]); // Initialize with empty list
   bool _isLoadingProfile = true;
+  Timer? _pollingTimer;
+  bool _isPollingFetch = false;
+  String? _lastBookingsFingerprint;
 
   @override
   void initState() {
     super.initState();
     _initializeData();
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _initializeData() async {
@@ -57,6 +67,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         _bookingsFuture = apiManager.ListBookingsSmart();
         _isLoadingProfile = false;
       });
+      _startPollingBookings();
       appLog('=== _initializeData END (Token found) ===');
     } else {
       // No token, just mark loading as complete
@@ -65,8 +76,69 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         _bookingsFuture = Future.value([]); // Empty list
         _isLoadingProfile = false;
       });
+      // Still start polling for admin user if present
+      _startPollingBookings();
       appLog('=== _initializeData END (No token) ===');
     }
+  }
+
+  void _startPollingBookings() {
+    // Cancel existing if any
+    _pollingTimer?.cancel();
+
+    // Poll every 3 seconds
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+      if (!mounted) return;
+      if (_isPollingFetch) return; // avoid overlap
+      _isPollingFetch = true;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final String? customerToken = prefs.getString('customer_token');
+
+        List<Booking> latest = [];
+
+        if (MyAppState.currentUser != null) {
+          // Admin logged in — fetch admin booking list
+          latest = await apiManager.ListBooking();
+        } else if (customerToken != null && customerToken.isNotEmpty) {
+          // Customer logged in — use customer bookings API
+          latest = await apiManager.ListBookingsSmart();
+        } else {
+          latest = [];
+        }
+
+        if (!mounted) return;
+
+        // Compute fingerprint for displayed bookings (pkey:status pairs)
+        List<Booking> displayed = latest;
+        try {
+          if (MyAppState.currentUser != null && _currentCustomer != null) {
+            displayed = latest
+                .where((b) =>
+                    b.customerkey == _currentCustomer!.customerkey.toString())
+                .toList();
+          }
+        } catch (_) {
+          // ignore
+        }
+
+        final fingerprint = displayed
+            .map((b) => '${b.pkey}:${b.status.replaceAll(',', '')}')
+            .join('|');
+
+        // Only update UI if fingerprint changed
+        if (fingerprint != _lastBookingsFingerprint) {
+          _lastBookingsFingerprint = fingerprint;
+          setState(() {
+            _bookingsFuture = Future.value(latest);
+          });
+        }
+      } catch (e) {
+        appLog('✗ Polling error: $e');
+      } finally {
+        _isPollingFetch = false;
+      }
+    });
   }
 
   Future<void> _loadCustomerInfo() async {
@@ -194,81 +266,64 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       // If not preloaded and not cached, fetch from API
       final profileData = await apiManager.fetchCustomerProfile();
 
-      if (profileData != null) {
-        appLog('✓ Loaded customer profile from API: $profileData');
+      // If API returned a profile, normalize and store it just like the
+      // cached/preloaded branches above.
+      if (profileData != null && profileData.isNotEmpty) {
+        try {
+          setState(() {
+            if (profileData.containsKey('pkey') ||
+                profileData.containsKey('photobase64')) {
+              _currentCustomer = Customer.fromJson(profileData);
+              appLog('✓ Created customer from API using fromJson');
+            } else {
+              _currentCustomer = Customer(
+                customerkey: profileData['customerkey'] ?? 0,
+                fullname: profileData['fullname'] ?? 'Guest',
+                email: profileData['email'] ?? '',
+                phone: profileData['phone'] ?? '',
+                photo: profileData['photo'] ?? '',
+                dob: profileData['dob'] ?? '',
+              );
+              appLog('✓ Created customer from API using direct mapping');
+            }
 
-        // Store in SharedPreferences cache for persistence
-        await prefs.setString(
-            'cached_customer_profile', jsonEncode(profileData));
-        appLog('✓ Customer profile cached in SharedPreferences');
+            // Persist to shared global state for other screens
+            MyAppState.customerProfile = profileData;
+            appLog(
+                'Customer from API: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
+          });
 
-        setState(() {
-          // Use Customer.fromJson if the backend sends pkey/photobase64
-          // Otherwise map directly
-          if (profileData.containsKey('pkey') ||
-              profileData.containsKey('photobase64')) {
-            _currentCustomer = Customer.fromJson(profileData);
-            appLog('✓ Created customer using fromJson');
-          } else {
-            _currentCustomer = Customer(
-              customerkey: profileData['customerkey'] ?? 0,
-              fullname: profileData['fullname'] ?? 'Guest',
-              email: profileData['email'] ?? '',
-              phone: profileData['phone'] ?? '',
-              photo: profileData['photo'] ?? '',
-              dob: profileData['dob'] ?? '',
-            );
-            appLog('✓ Created customer using direct mapping');
-          }
-          // Store in MyAppState for other screens
-          MyAppState.customerProfile = profileData;
-          appLog(
-              'Customer: ${_currentCustomer?.fullname}, ${_currentCustomer?.email}, ${_currentCustomer?.phone}, DOB: ${_currentCustomer?.dob}');
-        });
+          // Set customer data in BookingProvider for booking flow (after
+          // frame to avoid build conflicts)
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            try {
+              final bookingProvider =
+                  Provider.of<BookingProvider>(context, listen: false);
+              bookingProvider.setCustomerDetails({
+                'pkey': profileData['pkey'] ?? profileData['customerkey'],
+                'customerkey':
+                    profileData['pkey'] ?? profileData['customerkey'],
+                'fullname': profileData['fullname'] ?? 'Guest',
+                'email': profileData['email'] ?? '',
+                'phone': profileData['phone'] ?? '',
+                'dob': profileData['dob'] ?? '',
+              });
+              appLog('✓ Customer data set in BookingProvider (API)');
+            } catch (e) {
+              appLog('Could not set customer details in BookingProvider: $e');
+            }
+          });
 
-        // Set customer data in BookingProvider for booking flow (after frame to avoid build conflict)
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          try {
-            final bookingProvider =
-                Provider.of<BookingProvider>(context, listen: false);
-            bookingProvider.setCustomerDetails({
-              'pkey': profileData['pkey'] ?? profileData['customerkey'],
-              'customerkey': profileData['pkey'] ?? profileData['customerkey'],
-              'fullname': profileData['fullname'] ?? 'Guest',
-              'email': profileData['email'] ?? '',
-              'phone': profileData['phone'] ?? '',
-              'dob': profileData['dob'] ?? '',
-            });
-            appLog('✓ Customer data set in BookingProvider (API fetch)');
-          } catch (e) {
-            appLog('Could not set customer details in BookingProvider: $e');
-          }
-        });
-
-        appLog('=== _loadCustomerInfo END (API) ===');
-        return;
+          appLog('=== _loadCustomerInfo END (Admin) ===');
+          return;
+        } catch (e) {
+          appLog('Error parsing profileData from API: $e');
+          // fall through to no-data branch below
+        }
       }
 
-      // Fallback to admin user
-      appLog('No customer profile from API, checking admin user...');
-      final user = MyAppState.currentUser;
-      if (user != null) {
-        appLog('✓ Loading customer info from admin user: ${user.username}');
-        setState(() {
-          _currentCustomer = Customer(
-            customerkey: int.tryParse(user.userkey) ?? 0,
-            fullname: user.username,
-            email: user.email,
-            phone: '',
-            photo: user.profilephoto,
-            dob: '',
-          );
-        });
-        appLog('=== _loadCustomerInfo END (Admin) ===');
-      } else {
-        appLog('✗ No admin user found either!');
-        appLog('=== _loadCustomerInfo END (No Data) ===');
-      }
+      appLog('✗ No admin user found either!');
+      appLog('=== _loadCustomerInfo END (No Data) ===');
     } catch (e) {
       appLog('✗ Error loading customer info: $e');
       appLog('=== _loadCustomerInfo END (Error) ===');
@@ -294,7 +349,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         child: SingleChildScrollView(
           child: Container(
             padding:
-                const EdgeInsets.symmetric(horizontal: 32.0, vertical: 40.0),
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
             constraints: const BoxConstraints(maxWidth: 800),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -340,7 +395,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Widget _buildProfileSection(BuildContext context, Color color) {
     if (_isLoadingProfile || _currentCustomer == null) {
       return const Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(10.0),
         child: Center(child: CircularProgressIndicator()),
       );
     }
@@ -360,7 +415,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         // Profile Card
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(10.0),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
@@ -553,6 +608,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ),
         ),
         const SizedBox(height: 16),
+        const SizedBox(height: 16),
         FutureBuilder<List<Booking>>(
           future: _bookingsFuture,
           builder: (context, snapshot) {
@@ -564,7 +620,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             } else if (snapshot.hasError) {
               appLog('✗ Error loading bookings: ${snapshot.error}');
               return Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(10.0),
                 child: Center(
                   child: Column(
                     children: [
@@ -741,12 +797,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         'note': booking.note,
         'status': booking.status,
       };
-    //  appLog('Booking detail: ${jsonEncode(b)}');
+      appLog('Booking detail: ${jsonEncode(b)}');
     } catch (e) {
       appLog('Could not log booking detail: $e');
     }
 
     final isPast = isBookingInPast(booking);
+    final statusCategory =
+        _statusCategoryFromStrings(booking.status, booking.note);
+    final isCancelled = statusCategory == 'cancelled';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -787,42 +846,32 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const SizedBox(height: 4),
+                    // Booking time moved above the status chip
+                    Text(
+                      '${formatBookingTime(booking.bookingtime)} : ${_formatDate(DateTime.parse(booking.bookingdate))}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isPast ? Colors.grey[500] : Colors.grey[700],
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+                    // Status chip moved below the time (left-aligned)
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            booking.servicename == 'N/A' ||
-                                    booking.servicename == 'Unknown' ||
-                                    booking.servicename == 'null' ||
-                                    booking.servicename.isEmpty
-                                ? 'Service Booking'
-                                : booking.servicename,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isPast ? Colors.grey[600] : Colors.black87,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Booking status chip — show backend status text verbatim when available
                         Builder(builder: (ctx) {
                           final rawStatus = booking.status.trim();
                           final lower = rawStatus.toLowerCase();
 
-                          // Decide color using simple keyword matching, but
-                          // display the backend text exactly as returned when present.
                           Color statusColor;
                           if (lower.contains('pending')) {
-                            // Backend 'pending' -> red
                             statusColor = Colors.red;
                           } else if (lower.contains('confirm') ||
                               lower.contains('confirmed')) {
-                            // Backend 'confirm'/'confirmed' -> green (confirmed)
                             statusColor = Colors.green[700]!;
                           } else if (lower.contains('cancel')) {
-                            // cancelled stays red (explicit cancellation)
                             statusColor = Colors.red;
                           } else if (lower.contains('complete') ||
                               lower == 'completed' ||
@@ -832,7 +881,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                               lower == 'upcoming') {
                             statusColor = Colors.green[700]!;
                           } else if (rawStatus.isEmpty) {
-                            // No backend status — fallback to note/isPast
                             final note = booking.note.toLowerCase();
                             if (note.contains('cancel')) {
                               statusColor = Colors.red;
@@ -842,7 +890,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                               statusColor = Colors.green[700]!;
                             }
                           } else {
-                            // Unknown backend status text: use neutral color
                             statusColor = Colors.blueGrey;
                           }
 
@@ -873,18 +920,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         }),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${formatBookingTime(booking.bookingtime)} : ${_formatDate(DateTime.parse(booking.bookingdate))}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isPast ? Colors.grey[500] : Colors.grey[700],
-                      ),
-                    ),
                   ],
                 ),
               ),
-              if (!isPast)
+              if (!isPast && !isCancelled)
                 PopupMenuButton<String>(
                   icon: Icon(Icons.more_vert, color: Colors.grey[600]),
                   onSelected: (value) {
@@ -965,45 +1004,72 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               ),
             ],
           ),
-          if (!isPast) ...[
+          if (!isPast && !isCancelled) ...[
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      _handleChangeBooking(booking, context);
-                    },
-                    icon: const Icon(Icons.edit, size: 18),
-                    label: const Text('Change'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(color: color),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+            Builder(builder: (_) {
+              // If pending: show only the Delete button.
+              if (statusCategory == 'pending') {
+                return Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          _handleCancelBooking(booking, context);
+                        },
+                        icon: const Icon(Icons.delete, size: 18),
+                        label: const Text('Delete'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: const BorderSide(color: Colors.red),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              // If confirmed (or any other non-pending status): show both Change and Delete.
+              return Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        _handleChangeBooking(booking, context);
+                      },
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text('Change'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: color),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      _handleCancelBooking(booking, context);
-                    },
-                    icon: const Icon(Icons.cancel, size: 18),
-                    label: const Text('Cancel'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        _handleCancelBooking(booking, context);
+                      },
+                      icon: const Icon(Icons.delete, size: 18),
+                      label: const Text('Delete'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: const BorderSide(color: Colors.red),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              );
+            }),
           ],
         ],
       ),
@@ -1124,6 +1190,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         );
       },
     );
+  }
+
+  // Normalize backend status and notes into a simple category
+  String _statusCategoryFromStrings(String status, String note) {
+    final s = status.toLowerCase().trim();
+    final n = note.toLowerCase();
+
+    if (s.contains('cancel') || n.contains('cancel')) return 'cancelled';
+    if (s.contains('pending')) return 'pending';
+    if (s.contains('confirm')) return 'confirmed';
+    if (s.contains('complete') || s.contains('done')) return 'completed';
+    if (s.contains('upcom') || s.contains('upcoming')) return 'upcoming';
+    return 'other';
   }
 
   String _formatDate(DateTime dateTime) {

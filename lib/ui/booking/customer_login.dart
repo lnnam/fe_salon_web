@@ -3,6 +3,7 @@ import 'guest_login.dart';
 import 'customer_register.dart';
 import 'package:salonappweb/api/api_manager.dart';
 import 'package:salonappweb/main.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -21,6 +22,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -190,9 +192,9 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
               children: [
                 // Logo or Title
                 const SizedBox(height: 40),
-                const Text(
-                  'Salon App',
-                  style: TextStyle(
+                Text(
+                  'appName'.tr(),
+                  style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
                     color: Colors.blue,
@@ -200,9 +202,46 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                 ),
                 const SizedBox(height: 40),
 
+                // Error message (inline)
+                if (_errorMessage != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline,
+                            color: Colors.red[700], size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 // Username TextField
                 TextField(
                   controller: _usernameController,
+                  onChanged: (_) {
+                    if (_errorMessage != null) {
+                      setState(() {
+                        _errorMessage = null;
+                      });
+                    }
+                  },
                   decoration: InputDecoration(
                     labelText: 'Email or Phone',
                     hintText: 'Enter your email or phone number',
@@ -219,6 +258,13 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                 // Password TextField
                 TextField(
                   controller: _passwordController,
+                  onChanged: (_) {
+                    if (_errorMessage != null) {
+                      setState(() {
+                        _errorMessage = null;
+                      });
+                    }
+                  },
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: 'Password',
@@ -359,12 +405,9 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
   Future<void> _handleLogin() async {
     // Validate inputs
     if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter email/phone and password'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      setState(() {
+        _errorMessage = 'Please enter email/phone and password';
+      });
       return;
     }
 
@@ -390,7 +433,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
         if (profileData != null) {
           // Store customer profile in MyAppState
           MyAppState.customerProfile = profileData;
-        //  print('✓ Customer profile loaded and stored in MyAppState');
+          //  print('✓ Customer profile loaded and stored in MyAppState');
 
           // Cache profile in SharedPreferences for persistence across page reloads
           final prefs = await SharedPreferences.getInstance();
@@ -452,21 +495,15 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
         );
       } else {
         // Login failed
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid email/phone or password'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        setState(() {
+          _errorMessage = 'Invalid email/phone or password';
+        });
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Login error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      setState(() {
+        _errorMessage = 'Login error: $e';
+      });
     } finally {
       if (mounted) {
         setState(() {

@@ -57,7 +57,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
       'serviceDuration': newBooking.serviceDuration,
     };
 
-   // print('Formatted schedule data: $scheduleData');
+    // print('Formatted schedule data: $scheduleData');
 
     Provider.of<BookingProvider>(context, listen: false)
         .setSchedule(scheduleData);
@@ -139,7 +139,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
       serviceDuration: 45,
     );
 
-   // print('fetchAvailability result: $response'); // Debug print
+    //print('fetchAvailability result: $response'); // Debug print
 
     final List<DateTimeRange> busySlots = [];
     final now = DateTime.now();
@@ -160,7 +160,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
           // Mark as busy (red) if unavailable from API OR if slot is in the past
           if (slot['available'] == false || slotStart.isBefore(now)) {
             busySlots.add(DateTimeRange(start: slotStart, end: slotEnd));
-           // print( 'Busy/grey slot: ${slotStart.toIso8601String()} - ${slotEnd.toIso8601String()}');
+            // print( 'Busy/grey slot: ${slotStart.toIso8601String()} - ${slotEnd.toIso8601String()}');
           }
         }
       }
@@ -172,8 +172,8 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
   List<DateTimeRange> generatePauseSlots() {
     return [
       DateTimeRange(
-          start: DateTime(now.year, now.month, now.day, 12, 0),
-          end: DateTime(now.year, now.month, now.day, 13, 0))
+          start: DateTime(now.year, now.month, now.day, 18, 0),
+          end: DateTime(now.year, now.month, now.day, 20, 0))
     ];
   }
 
@@ -186,32 +186,51 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
             style: TextStyle(color: Colors.white)),
         backgroundColor: color, // Set app bar color
       ),
-      body: Center(
-        child: BookingCalendar(
-          bookingService: mockBookingService,
-          convertStreamResultToDateTimeRanges: (
-                  {required dynamic streamResult}) =>
-              streamResult as List<DateTimeRange>,
-
-          getBookingStream: (
-                  {required DateTime start, required DateTime end}) =>
-              getBookingStreamFromServer(start: start, end: end),
-          // convertStreamResultToDateTimeRanges: convertStreamResultMock,
-          // getBookingStream: getBookingStreamMock,
-          uploadBooking: uploadBookingMock,
-          pauseSlots: generatePauseSlots(),
-          pauseSlotText: 'Disabled',
-          hideBreakTime: false,
-          loadingWidget: const Text('Fetching data...'),
-          uploadingWidget: const CircularProgressIndicator(),
-          locale: 'en_GB',
-          // ✅ Start from the current day
-
-          startingDayOfWeek: StartingDayOfWeek.monday,
-          wholeDayIsBookedWidget:
-              const Text('Sorry, for this day everything is booked'),
-          //disabledDates: [DateTime(2023, 1, 20)],
-          //disabledDays: [6, 7],
+      body: SafeArea(
+        child: SizedBox.expand(
+          child: Builder(builder: (context) {
+            const int crossAxisCount = 4;
+            final bool compact = crossAxisCount >= 4;
+            return BookingCalendar(
+              bookingService: mockBookingService,
+              bookingExplanation: const SizedBox.shrink(),
+              bookingGridCrossAxisCount: crossAxisCount,
+              bookingGridChildAspectRatio: compact ? 1.2 : 1.5,
+              // When compact (many columns) hide the time text by using
+              // a zero-size text style to avoid clipped text.
+              // Use a smaller readable font in compact mode instead of hiding text
+              availableSlotTextStyle: compact
+                  ? const TextStyle(fontSize: 12, height: 1)
+                  : const TextStyle(fontSize: 14),
+              selectedSlotTextStyle: compact
+                  ? const TextStyle(fontSize: 12, height: 1)
+                  : const TextStyle(fontSize: 14),
+              bookedSlotTextStyle: compact
+                  ? const TextStyle(fontSize: 12, height: 1)
+                  : const TextStyle(fontSize: 14),
+              convertStreamResultToDateTimeRanges: (
+                      {required dynamic streamResult}) =>
+                  streamResult as List<DateTimeRange>,
+              getBookingStream: (
+                      {required DateTime start, required DateTime end}) =>
+                  getBookingStreamFromServer(start: start, end: end),
+              // convertStreamResultToDateTimeRanges: convertStreamResultMock,
+              // getBookingStream: getBookingStreamMock,
+              uploadBooking: uploadBookingMock,
+              pauseSlots: generatePauseSlots(),
+              pauseSlotText: 'Disabled',
+              hideBreakTime: false,
+              loadingWidget: const Text('Fetching data...'),
+              uploadingWidget: const CircularProgressIndicator(),
+              locale: 'en_GB',
+              // ✅ Start from the current day
+              startingDayOfWeek: StartingDayOfWeek.monday,
+              wholeDayIsBookedWidget:
+                  const Text('Sorry, for this day everything is booked'),
+              //disabledDates: [DateTime(2023, 1, 20)],
+              //disabledDays: [6, 7],
+            );
+          }),
         ),
       ),
     );
