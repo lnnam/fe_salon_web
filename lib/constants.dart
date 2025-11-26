@@ -1,8 +1,7 @@
-
 const FINISHED_ON_BOARDING = 'finishedOnBoarding';
 const COLOR_ACCENT = 0xFF7693f8;
 const COLOR_PRIMARY_DARK = 0xFF003c94;
-const COLOR_PRIMARY = 0xFF3E66C5;
+const COLOR_PRIMARY = 0xFF0D9488;
 //const COLOR_PRIMARY =  Colors.blue;
 const FACEBOOK_BUTTON_COLOR = 0xFF415893;
 const USERS = 'users';
