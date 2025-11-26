@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'guest_login.dart';
 import 'customer_register.dart';
 import 'package:salonappweb/api/api_manager.dart';
+import 'package:salonappweb/constants.dart';
 import 'package:salonappweb/main.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'home.dart';
@@ -194,10 +195,10 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                 const SizedBox(height: 40),
                 Text(
                   'appName'.tr(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: const Color(COLOR_PRIMARY),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -297,7 +298,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          backgroundColor: Colors.blue,
+                          backgroundColor: const Color(COLOR_PRIMARY),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -327,7 +328,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                       height: 48,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.blue),
+                          side: const BorderSide(color: Color(COLOR_PRIMARY)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -345,7 +346,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                           'Guest',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.blue,
+                            color: Color(COLOR_PRIMARY),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -373,7 +374,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                         'Register',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.blue,
+                          color: Color(COLOR_PRIMARY),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -393,7 +394,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                         'Forgot Password?',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.blue,
+                          color: Color(COLOR_PRIMARY),
                           fontWeight: FontWeight.w500,
                         ),
                       ),

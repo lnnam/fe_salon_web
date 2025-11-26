@@ -4,9 +4,8 @@ import 'constants.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:salonappweb/ui/login.dart';
-import 'package:salonappweb/ui/logout.dart';
-import 'package:salonappweb/ui/dashboard.dart';
+import 'package:salonappweb/ui/login.dart__';
+import 'package:salonappweb/ui/logout.dart__';
 import 'package:salonappweb/model/user.dart';
 import 'package:salonappweb/config/app_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -136,13 +135,6 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
       home: const AppInitializer(),
       routes: {
         '/home': (context) => const CustomerLoginPage(),
-        '/dashboard': (context) => const AuthChecker(),
-        '/booking': (context) => const CustomerHomeScreen(),
-        '/pos': (context) => const SaleScreen(),
-        '/checkin': (context) => const CheckInScreen(),
-        '/checkout': (context) => const CheckOutScreen(),
-        '/login': (context) => const Login(),
-        '/logout': (context) => const LogoutPage(),
       },
     );
   }
@@ -192,13 +184,6 @@ class AppInitializer extends StatelessWidget {
       return '/booking';
     }
 
-    // Check for admin token (staff user)
-    final String? adminToken = prefs.getString('token');
-    if (adminToken != null && adminToken.isNotEmpty) {
-      print('✓ Admin token found, routing to /dashboard');
-      return '/dashboard';
-    }
-
     // No token found, go to customer login page
     print('✗ No token found, routing to /home (customer login)');
     return '/home';
@@ -219,16 +204,14 @@ class AuthChecker extends StatelessWidget {
               child: CircularProgressIndicator(),
             ),
           );
-        } else {
-          if (snapshot.hasData && snapshot.data == true) {
-            // Token is saved, proceed to main app
-            // Update currentUser in MyAppState
-            return const Dashboard();
-          } else {
-            // Token is not saved, navigate to login page
-            return const Login();
-          }
         }
+        // If we have a result, show the appropriate page
+        if (snapshot.hasData && snapshot.data == true) {
+          return const CustomerHomeScreen();
+        }
+
+        // Default to login page when token missing or error
+        return const CustomerLoginPage();
       },
     );
   }

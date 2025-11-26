@@ -7,6 +7,7 @@ import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:salonappweb/main.dart'; // For MyAppState
 
 import 'home.dart';
+import 'package:salonappweb/constants.dart';
 import 'calendar.dart'; // ⬅️ Replace with actual path
 import 'staff.dart'; // ⬅️ Replace with actual path
 // ⬅️ Replace with actual path
@@ -255,7 +256,7 @@ class _SummaryPageState extends State<SummaryPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Summary Booking'),
-        backgroundColor: Colors.blue,
+        backgroundColor: Color(COLOR_PRIMARY),
         actions: [
           IconButton(
             icon: const Icon(Icons.cancel, color: Colors.white),
@@ -323,7 +324,7 @@ class _SummaryPageState extends State<SummaryPage> {
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue, width: 2),
+                  borderSide: BorderSide(color: Color(COLOR_PRIMARY), width: 2),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.grey, width: 1),
@@ -370,7 +371,7 @@ class _SummaryPageState extends State<SummaryPage> {
                           );
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Color(COLOR_PRIMARY),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -435,7 +436,7 @@ class _SummaryPageState extends State<SummaryPage> {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            Icon(icon, color: Colors.blue),
+            Icon(icon, color: Color(COLOR_PRIMARY)),
             const SizedBox(width: 12),
             Expanded(
               child: Text(

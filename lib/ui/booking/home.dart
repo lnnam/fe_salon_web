@@ -345,23 +345,47 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
     const color = Color(COLOR_PRIMARY);
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-            constraints: const BoxConstraints(maxWidth: 800),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildProfileSection(context, color),
-                const SizedBox(height: 32),
-                _buildBookingsSection(context, color),
-                const SizedBox(height: 24),
-              ],
+      appBar: AppBar(
+        backgroundColor: color,
+        title: const SizedBox.shrink(),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: _buildTopMenu(),
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          // Page-level profile menu will be placed in the top-right SafeArea
+
+          Center(
+            child: SingleChildScrollView(
+              child: Container(
+                // reduce vertical padding to avoid large bottom gap
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 12.0),
+                constraints: const BoxConstraints(maxWidth: 800),
+                // Use a Stack so the menu can be positioned relative to the centered container
+                child: Stack(
+                  children: [
+                    Column(
+                      // align content to the top so it doesn't get vertically centered
+                      // which causes a larger bottom gap when content is short
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        _buildProfileSection(context, color),
+                        const SizedBox(height: 32),
+                        _buildBookingsSection(context, color),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -402,194 +426,120 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
     return Column(
       children: [
-        // Title
-        const Text(
-          'My Profile',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.blue,
-          ),
-        ),
-        const SizedBox(height: 12),
-        // Profile Card
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(10.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[300]!),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                spreadRadius: 1,
-                blurRadius: 3,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Text(
-                _currentCustomer!.fullname,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Email
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.email, size: 18, color: Colors.grey[700]),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _currentCustomer!.email,
-                        style: TextStyle(fontSize: 14, color: Colors.grey[800]),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              // Phone
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.phone, size: 18, color: Colors.grey[700]),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _currentCustomer!.phone.isEmpty
-                            ? 'No phone number'
-                            : _currentCustomer!.phone,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: _currentCustomer!.phone.isEmpty
-                              ? Colors.grey[400]
-                              : Colors.grey[800],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              // Date of Birth
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.cake, size: 18, color: Colors.grey[700]),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _currentCustomer!.dob.isEmpty
-                            ? 'No date of birth'
-                            : _currentCustomer!.dob,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: _currentCustomer!.dob.isEmpty
-                              ? Colors.grey[400]
-                              : Colors.grey[800],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        final result = await Navigator.push<Customer?>(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CustomerSetMemberPage(
-                                customer: _currentCustomer!),
-                          ),
-                        );
-
-                        if (result != null) {
-                          setState(() {
-                            _currentCustomer = result;
-                          });
-
-                          try {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Member account updated'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          } catch (e) {
-                            appLog(
-                                'Could not show snackbar after Set Member: $e');
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.person_add, size: 16),
-                      label: const Text('Set Member'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        backgroundColor: color,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pushReplacementNamed(context, '/logout');
-                      },
-                      icon:
-                          Icon(Icons.logout, size: 16, color: Colors.red[400]),
-                      label: Text(
-                        'Logout',
-                        style: TextStyle(color: Colors.red[400]),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        side: BorderSide(color: Colors.red[400]!),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                    ),
+        // Profile Card with menu positioned at its top-right
+        Stack(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
                   ),
                 ],
               ),
-            ],
-          ),
+              child: Column(
+                children: [
+                  // Name row (with menu aligned to the row)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.person, size: 18, color: Colors.grey[700]),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _currentCustomer!.fullname,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Email
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.email, size: 18, color: Colors.grey[700]),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _currentCustomer!.email,
+                            style: TextStyle(
+                                fontSize: 14, color: Colors.grey[800]),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Phone
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.phone, size: 18, color: Colors.grey[700]),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _currentCustomer!.phone.isEmpty
+                                ? 'No phone number'
+                                : _currentCustomer!.phone,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _currentCustomer!.phone.isEmpty
+                                  ? Colors.grey[400]
+                                  : Colors.grey[800],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Date of Birth removed per request
+                  const SizedBox.shrink(),
+                ],
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: _buildTopMenu(),
+            ),
+          ],
         ),
       ],
     );
@@ -599,15 +549,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'My Appointments',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Colors.blue,
+            color: color,
           ),
         ),
-        const SizedBox(height: 16),
         const SizedBox(height: 16),
         FutureBuilder<List<Booking>>(
           future: _bookingsFuture,
@@ -1223,5 +1172,64 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       booking.bookingtime.minute,
     );
     return bookingDateTime.isBefore(DateTime.now());
+  }
+
+  Widget _buildTopMenu() {
+    return PopupMenuButton<String>(
+      icon: Icon(Icons.account_circle, size: 34, color: Colors.white),
+      onSelected: (value) async {
+        if (value == 'setmember') {
+          try {
+            if (_currentCustomer == null) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('No customer loaded'),
+              ));
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      CustomerSetMemberPage(customer: _currentCustomer!),
+                ),
+              );
+            }
+          } catch (e) {
+            appLog('Could not open Set Member: $e');
+          }
+        } else if (value == 'logout') {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.remove('customer_token');
+            await prefs.remove('cached_customer_profile');
+            MyAppState.customerProfile = null;
+            Navigator.pushReplacementNamed(context, '/home');
+          } catch (e) {
+            appLog('Logout failed: $e');
+          }
+        }
+      },
+      itemBuilder: (BuildContext context) => [
+        const PopupMenuItem<String>(
+          value: 'setmember',
+          child: Row(
+            children: [
+              Icon(Icons.group, size: 20, color: Colors.blue),
+              SizedBox(width: 8),
+              Text('Set Member'),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'logout',
+          child: Row(
+            children: [
+              Icon(Icons.logout, size: 20, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Logout'),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

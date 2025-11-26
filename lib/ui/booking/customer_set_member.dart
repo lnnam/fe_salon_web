@@ -161,13 +161,43 @@ class _CustomerSetMemberPageState extends State<CustomerSetMemberPage> {
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 12),
+                // Make DOB field read-only and open date picker on tap
                 TextField(
                   controller: dobController,
+                  readOnly: true,
                   decoration: const InputDecoration(
                       labelText: 'Date of Birth (YYYY-MM-DD)',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.cake)),
-                  keyboardType: TextInputType.datetime,
+                  onTap: () async {
+                    DateTime initial = DateTime.now();
+                    try {
+                      if (dobController.text.isNotEmpty) {
+                        initial = DateTime.parse(dobController.text);
+                      } else {
+                        initial = DateTime.now()
+                            .subtract(const Duration(days: 365 * 20));
+                      }
+                    } catch (_) {
+                      initial = DateTime.now()
+                          .subtract(const Duration(days: 365 * 20));
+                    }
+
+                    final DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: initial,
+                      firstDate: DateTime(1900),
+                      lastDate: DateTime.now(),
+                    );
+
+                    if (picked != null) {
+                      final formatted =
+                          '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+                      setState(() {
+                        dobController.text = formatted;
+                      });
+                    }
+                  },
                 ),
                 const SizedBox(height: 12),
                 const Divider(),
