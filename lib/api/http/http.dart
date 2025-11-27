@@ -9,6 +9,7 @@ import 'package:salonappweb/model/service.dart';
 import 'package:salonappweb/model/customer.dart';
 import 'package:salonappweb/services/helper.dart';
 import 'package:salonappweb/services/app_logger.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MyHttp {
@@ -215,7 +216,15 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-      //  appLog('Response body: ${response.body}');
+      // Debug: always print full response body in debug mode so developer can inspect backend payload
+      if (kDebugMode) {
+        try {
+          print('=== FETCH CUSTOMER BOOKINGS RESPONSE ===');
+          print('Status: ${response.statusCode}');
+          print(response.body);
+          print('=== END FETCH CUSTOMER BOOKINGS RESPONSE ===');
+        } catch (_) {}
+      }
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
