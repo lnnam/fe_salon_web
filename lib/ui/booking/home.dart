@@ -98,10 +98,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
         List<Booking> latest = [];
 
-        if (MyAppState.currentUser != null) {
-          // Admin logged in — fetch admin booking list
-          latest = await apiManager.ListBooking();
-        } else if (customerToken != null && customerToken.isNotEmpty) {
+       if (customerToken != null && customerToken.isNotEmpty) {
           // Customer logged in — use customer bookings API
           latest = await apiManager.ListBookingsSmart();
         } else {
@@ -145,7 +142,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Future<void> _loadCustomerInfo() async {
     try {
       appLog('=== _loadCustomerInfo START ===');
-      appLog('MyAppState.customerProfile value: ${MyAppState.customerProfile}');
+     // appLog('MyAppState.customerProfile value: ${MyAppState.customerProfile}');
 
       // First check if customer profile was already loaded at app startup
       if (MyAppState.customerProfile != null) {

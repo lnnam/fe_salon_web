@@ -88,17 +88,7 @@ class MyHttp {
     }
   }
 
-  Future<List<Booking>> ListBooking() async {
-    try {
-      final response = await fetchFromServer(AppConfig.api_url_booking_home);
-      // print('url test: ${response}');
-      List<dynamic> data = response;
-      return data.map<Booking>((item) => Booking.fromJson(item)).toList();
-    } catch (error) {
-      // Handle error
-      rethrow;
-    }
-  }
+ 
 
   // Smart method that uses customer token by default
   Future<List<Booking>> ListBookingsSmart() async {
