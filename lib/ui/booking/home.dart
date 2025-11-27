@@ -15,6 +15,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'package:universal_html/html.dart' as html;
 import 'package:salonappweb/services/app_logger.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
@@ -345,42 +346,73 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
     const color = Color(COLOR_PRIMARY);
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: color,
-        title: const SizedBox.shrink(),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: _buildTopMenu(),
-          ),
-        ],
-      ),
+      // AppBar replaced by an inline header to match requested layout.
       body: Stack(
         children: [
-          // Page-level profile menu will be placed in the top-right SafeArea
-
-          Center(
-            child: SingleChildScrollView(
-              child: Container(
-                // reduce vertical padding to avoid large bottom gap
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 12.0),
-                constraints: const BoxConstraints(maxWidth: 800),
-                // Use a Stack so the menu can be positioned relative to the centered container
-                child: Stack(
-                  children: [
-                    Column(
-                      // align content to the top so it doesn't get vertically centered
-                      // which causes a larger bottom gap when content is short
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        _buildProfileSection(context, color),
-                        const SizedBox(height: 32),
-                        _buildBookingsSection(context, color),
-                        const SizedBox(height: 16),
-                      ],
+          // Top header (replaces AppBar)
+          SafeArea(
+            child: Container(
+              height: kToolbarHeight,
+              color: color,
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(
+                children: [
+                  // Home button on the top-left
+                  TextButton.icon(
+                    onPressed: () {
+                      try {
+                        html.window.open(
+                            'https://www.greatyarmouthnails.com', '_blank');
+                      } catch (e) {
+                        appLog('Could not open external link: $e');
+                      }
+                    },
+                    icon: const Icon(Icons.home, color: Colors.white),
+                    label: const Text('Home',
+                        style: TextStyle(color: Colors.white)),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: 8),
+                  const Spacer(),
+                  // Top-right profile/menu
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: _buildTopMenu(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Main page content sits below the header
+          Padding(
+            padding: const EdgeInsets.only(top: kToolbarHeight),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Container(
+                  // reduce vertical padding to avoid large bottom gap
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 12.0),
+                  constraints: const BoxConstraints(maxWidth: 700),
+                  // Use a Stack so the menu can be positioned relative to the centered container
+                  child: Stack(
+                    children: [
+                      Column(
+                        // align content to the top so it doesn't get vertically centered
+                        // which causes a larger bottom gap when content is short
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          _buildProfileSection(context, color),
+                          const SizedBox(height: 32),
+                          _buildBookingsSection(context, color),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -426,6 +458,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
     return Column(
       children: [
+        Text(
+          'Nail Profile',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 16),
         // Profile Card with menu positioned at its top-right
         Stack(
           children: [
@@ -537,7 +578,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             Positioned(
               top: 8,
               right: 8,
-              child: _buildTopMenu(),
+              child: const SizedBox.shrink(),
             ),
           ],
         ),
@@ -552,7 +593,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         Text(
           'My Appointments',
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
             color: color,
           ),
@@ -887,7 +928,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       value: 'change',
                       child: Row(
                         children: [
-                          Icon(Icons.edit, size: 20, color: Colors.blue),
+                          Icon(Icons.edit,
+                              size: 20, color: Color(COLOR_PRIMARY)),
                           SizedBox(width: 8),
                           Text('Change'),
                         ],
@@ -1213,7 +1255,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           value: 'setmember',
           child: Row(
             children: [
-              Icon(Icons.group, size: 20, color: Colors.blue),
+              Icon(Icons.group, size: 20, color: Color(COLOR_PRIMARY)),
               SizedBox(width: 8),
               Text('Set Member'),
             ],

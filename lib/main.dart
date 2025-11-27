@@ -4,8 +4,6 @@ import 'constants.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:salonappweb/ui/login.dart__';
-import 'package:salonappweb/ui/logout.dart__';
 import 'package:salonappweb/model/user.dart';
 import 'package:salonappweb/config/app_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -135,6 +133,9 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
       home: const AppInitializer(),
       routes: {
         '/home': (context) => const CustomerLoginPage(),
+        '/dashboard': (context) => const AuthChecker(),
+        '/booking': (context) => const CustomerHomeScreen(),
+        '/pos': (context) => const SaleScreen(),
       },
     );
   }
@@ -184,6 +185,13 @@ class AppInitializer extends StatelessWidget {
       return '/booking';
     }
 
+    // Check for admin token (staff user)
+    final String? adminToken = prefs.getString('token');
+    if (adminToken != null && adminToken.isNotEmpty) {
+      print('✓ Admin token found, routing to /dashboard');
+      return '/dashboard';
+    }
+
     // No token found, go to customer login page
     print('✗ No token found, routing to /home (customer login)');
     return '/home';
@@ -218,7 +226,7 @@ class AuthChecker extends StatelessWidget {
 
   Future<bool> _checkToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString('token');
+    String? token = prefs.getString('customer_token');
     return token != null;
   }
 }

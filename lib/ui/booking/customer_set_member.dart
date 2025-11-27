@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:salonappweb/model/customer.dart';
 import 'package:salonappweb/api/api_manager.dart';
+import 'package:salonappweb/services/app_logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:salonappweb/main.dart';
 
 class CustomerSetMemberPage extends StatefulWidget {
   final Customer customer;
@@ -76,14 +80,45 @@ class _CustomerSetMemberPageState extends State<CustomerSetMemberPage> {
     setState(() => _isLoading = true);
 
     try {
-      await apiManager.registerMember(
-        customerkey: widget.customer.customerkey,
-        fullname: name,
-        email: email,
-        phone: phone,
-        password: password,
-        dob: dob,
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final String? customerToken = prefs.getString('customer_token');
+
+      Map<String, dynamic> result;
+
+      if (customerToken != null && customerToken.isNotEmpty) {
+        appLog(
+            'Calling registerMember for customer ${widget.customer.customerkey}');
+        result = await apiManager.registerMember(
+          customerkey: widget.customer.customerkey,
+          fullname: name,
+          email: email,
+          phone: phone,
+          password: password,
+          dob: dob,
+        );
+      } else {
+        appLog(
+            'No customer token found — calling registerNewCustomer (public)');
+        result = await apiManager.registerNewCustomer(
+          fullname: name,
+          email: email,
+          phone: phone,
+          password: password,
+          dob: dob,
+        );
+
+        // If backend returned a token for new registration, persist it
+        if (result['token'] != null) {
+          await prefs.setString('customer_token', result['token']);
+          if (result['customerkey'] != null) {
+            await prefs.setString(
+                'customer_key', result['customerkey'].toString());
+          }
+          appLog('Stored new customer token from public registration');
+        }
+      }
+
+      appLog('Register result: ${result.toString()}');
 
       // Create updated customer locally and return it to caller
       final updated = Customer(
@@ -95,9 +130,22 @@ class _CustomerSetMemberPageState extends State<CustomerSetMemberPage> {
         dob: dob,
       );
 
+      // Optionally update cached profile if backend returned profile data
+      try {
+        if (result.containsKey('customer') && result['customer'] is Map) {
+          final cached = result['customer'] as Map<String, dynamic>;
+          await prefs.setString('cached_customer_profile', jsonEncode(cached));
+          MyAppState.customerProfile = cached;
+          appLog('Updated cached customer profile from register result');
+        }
+      } catch (e) {
+        appLog('Could not update cached profile: $e');
+      }
+
       if (!mounted) return;
       Navigator.pop(context, updated);
     } catch (e) {
+      appLog('Error saving member: $e');
       setState(() => errorMessage = 'Failed to create member account: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'home.dart';
 import 'package:salonappweb/main.dart';
+import 'package:salonappweb/constants.dart';
 
 class CustomerRegisterPage extends StatefulWidget {
   const CustomerRegisterPage({super.key});
@@ -44,7 +45,7 @@ class _CustomerRegisterPageState extends State<CustomerRegisterPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Register'),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(COLOR_PRIMARY),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -194,7 +195,7 @@ class _CustomerRegisterPageState extends State<CustomerRegisterPage> {
                   onPressed: _isLoading ? null : _handleRegister,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(COLOR_PRIMARY),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8)),
                   ),

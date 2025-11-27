@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:salonappweb/services/helper.dart';
+import 'package:salonappweb/constants.dart';
 import 'service.dart';
 
 class GuestLoginPage extends StatefulWidget {
@@ -12,8 +13,8 @@ class GuestLoginPage extends StatefulWidget {
 }
 
 class _GuestLoginPageState extends State<GuestLoginPage> {
-    final TextEditingController _emailController = TextEditingController();
-    final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
@@ -25,10 +26,11 @@ class _GuestLoginPageState extends State<GuestLoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    const color = Color(COLOR_PRIMARY);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Guest Booking'),
-        backgroundColor: Colors.blue,
+        backgroundColor: color,
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -110,7 +112,7 @@ class _GuestLoginPageState extends State<GuestLoginPage> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: Colors.blue,
+                        backgroundColor: color,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -166,7 +168,7 @@ class _GuestLoginPageState extends State<GuestLoginPage> {
                       'Back to Login',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.blue,
+                        color: Color(COLOR_PRIMARY),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
