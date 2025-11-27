@@ -220,8 +220,11 @@ class MyHttp {
       // Debug: log full response body to the `app` channel so it appears in applog during development
       if (kDebugMode) {
         try {
+          // Send to `app` log channel (visible via developer tools/applog)
           developer.log('=== FETCH CUSTOMER BOOKINGS RESPONSE ===\nStatus: ${response.statusCode}\n${response.body}\n=== END FETCH CUSTOMER BOOKINGS RESPONSE ===',
               name: 'app');
+          // Also print simple raw response to console for immediate visibility
+          print('FETCH CUSTOMER BOOKINGS RAW: ${response.body}');
         } catch (_) {}
       }
 
