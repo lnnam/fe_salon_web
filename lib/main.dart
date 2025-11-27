@@ -13,6 +13,8 @@ import 'package:flutter/rendering.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:salonappweb/services/app_logger.dart';
+import 'package:flutter/foundation.dart';
 
 void main() async {
   debugPaintBaselinesEnabled = true; // Enable debug paint
@@ -24,6 +26,12 @@ void main() async {
 
   // Log the API base URL from AppConfig for debugging
   print('API base url: ${AppConfig.api_url}');
+
+  // Enable appLog only in debug builds so appLog(...) messages are visible
+  if (kDebugMode) {
+    setAppLogEnabled(true);
+    print('appLog enabled (debug mode)');
+  }
 
   runApp(
     EasyLocalization(
