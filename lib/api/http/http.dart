@@ -215,7 +215,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-    //  appLog('Response body: ${response.body}');
+      //  appLog('Response body: ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -336,7 +336,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-     // appLog('Response body: ${response.body}');
+      // appLog('Response body: ${response.body}');
       appLog('=== FETCH CUSTOMER PROFILE END ===');
 
       if (response.statusCode == 200) {
@@ -377,7 +377,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-    //  appLog('Response body: ${response.body}');
+      //  appLog('Response body: ${response.body}');
       appLog('=== FETCH CUSTOMER BOOKINGS END ===');
 
       if (response.statusCode == 200) {
@@ -442,7 +442,7 @@ class MyHttp {
   }
 
   // Cancel booking using customer token
-  Future<bool> cancelCustomerBooking(int bookingId) async {
+  Future<Map<String, dynamic>> cancelCustomerBooking(int bookingId) async {
     try {
       appLog('=== CANCEL CUSTOMER BOOKING START ===');
       appLog('Booking ID: $bookingId');
@@ -452,14 +452,14 @@ class MyHttp {
 
       if (customerToken == null || customerToken.isEmpty) {
         appLog('✗ No customer token found');
-        return false;
+        return {'success': false, 'message': 'No customer token found'};
       }
 
       appLog('✓ Using customer token');
       appLog('Calling: ${AppConfig.api_url_booking_del}');
 
       final requestBody = {
-        'bookingkey': bookingId,
+        'bookingkey': bookingId.toString(),
       };
 
       appLog('Request body: ${jsonEncode(requestBody)}');
@@ -474,20 +474,32 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-     // appLog('Response body: ${response.body}');
+      appLog('Response body: ${response.body}');
       appLog('=== CANCEL CUSTOMER BOOKING END ===');
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         appLog('✓ Booking cancelled successfully');
-        return true;
+        return {'success': true, 'message': 'Booking cancelled successfully'};
       } else {
-        appLog('✗ Cancel failed: ${response.statusCode}');
-        return false;
+        // Try to extract message from response body
+        try {
+          final Map<String, dynamic> body = json.decode(response.body);
+          final String msg = body['message']?.toString() ?? response.body;
+          appLog('✗ Cancel failed: ${response.statusCode}, message: $msg');
+          return {'success': false, 'message': msg};
+        } catch (e) {
+          appLog(
+              '✗ Cancel failed: ${response.statusCode}, body: ${response.body}');
+          return {
+            'success': false,
+            'message': 'Cancel failed: ${response.statusCode}'
+          };
+        }
       }
     } catch (e, stackTrace) {
       appLog('✗ Cancel booking error: $e');
       appLog('Stack trace: $stackTrace');
-      return false;
+      return {'success': false, 'message': e.toString()};
     }
   }
 
@@ -518,7 +530,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-    //  appLog('Response body: ${response.body}');
+      //  appLog('Response body: ${response.body}');
       appLog('=== CUSTOMER LOGIN END ===');
 
       if (response.statusCode == 200) {
@@ -591,7 +603,7 @@ class MyHttp {
       );
 
       appLog('Response status: ${response.statusCode}');
-    //  appLog('Response body: ${response.body}');
+      //  appLog('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         appLog('✓ Member registered successfully');

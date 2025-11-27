@@ -459,7 +459,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return Column(
       children: [
         Text(
-          'Nail Profile',
+          'USA NAILs Profile',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -796,15 +796,33 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final statusCategory =
         _statusCategoryFromStrings(booking.status, booking.note);
     final isCancelled = statusCategory == 'cancelled';
+    // Treat cancelled bookings as archived (same styling as past bookings)
+    final isArchived = isPast || isCancelled;
+
+    // Decide whether to show actions based on status categories rather than
+    // solely on whether the booking time is in the past. This makes the UI
+    // responsive to backend status values like 'pending' or 'confirmed'.
+    final allowedActionStatuses = <String>{
+      'pending',
+      'confirmed',
+      'upcoming',
+      'other'
+    };
+    final showActions = !isCancelled &&
+        !isPast &&
+        allowedActionStatuses.contains(statusCategory);
+
+    appLog(
+        'Booking flags: pkey=${booking.pkey}, isPast=$isPast, statusCategory=$statusCategory, isCancelled=$isCancelled, rawStatus=${booking.status}, note=${booking.note}');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isPast ? Colors.grey[100] : Colors.white,
+        color: isArchived ? Colors.grey[100] : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: isPast ? Colors.grey[300]! : color.withOpacity(0.3)),
+            color: isArchived ? Colors.grey[300]! : color.withOpacity(0.3)),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
@@ -822,12 +840,17 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isPast ? Colors.grey[300] : color.withOpacity(0.1),
+                  color: isArchived ? Colors.grey[300] : color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  isPast ? Icons.check_circle : Icons.schedule,
-                  color: isPast ? Colors.grey[600] : color,
+                  // show cancel icon for cancelled bookings, check for past, otherwise schedule
+                  isCancelled
+                      ? Icons.cancel
+                      : (isPast ? Icons.check_circle : Icons.schedule),
+                  color: isCancelled
+                      ? Colors.red
+                      : (isArchived ? Colors.grey[600] : color),
                   size: 28,
                 ),
               ),
@@ -842,7 +865,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       '${formatBookingTime(booking.bookingtime)} : ${_formatDate(DateTime.parse(booking.bookingdate))}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: isPast ? Colors.grey[500] : Colors.grey[700],
+                        color: isArchived ? Colors.grey[500] : Colors.grey[700],
                       ),
                     ),
 
@@ -856,38 +879,54 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           final lower = rawStatus.toLowerCase();
 
                           Color statusColor;
-                          if (lower.contains('pending')) {
+                          String label;
+
+                          // Prioritize explicit cancel markers in status or note
+                          if (lower.contains('cancel') ||
+                              booking.note.toLowerCase().contains('cancel')) {
                             statusColor = Colors.red;
-                          } else if (lower.contains('confirm') ||
-                              lower.contains('confirmed')) {
-                            statusColor = Colors.green[700]!;
-                          } else if (lower.contains('cancel')) {
+                            label = 'Cancelled';
+                          } else if (lower.contains('pending')) {
                             statusColor = Colors.red;
+                            label =
+                                rawStatus.isNotEmpty ? rawStatus : 'Pending';
+                          } else if (lower.contains('confirm')) {
+                            // If confirmed but booking time is in the past,
+                            // present it as Completed (muted color)
+                            if (isPast) {
+                              statusColor = Colors.grey;
+                              label = 'Completed';
+                            } else {
+                              statusColor = Colors.green[700]!;
+                              label = rawStatus.isNotEmpty
+                                  ? rawStatus
+                                  : 'Confirmed';
+                            }
                           } else if (lower.contains('complete') ||
-                              lower == 'completed' ||
-                              lower == 'done') {
+                              lower.contains('done')) {
                             statusColor = Colors.grey;
+                            label =
+                                rawStatus.isNotEmpty ? rawStatus : 'Completed';
                           } else if (lower.contains('upcom') ||
                               lower == 'upcoming') {
                             statusColor = Colors.green[700]!;
+                            label =
+                                rawStatus.isNotEmpty ? rawStatus : 'Upcoming';
                           } else if (rawStatus.isEmpty) {
-                            final note = booking.note.toLowerCase();
-                            if (note.contains('cancel')) {
+                            if (booking.note.toLowerCase().contains('cancel')) {
                               statusColor = Colors.red;
+                              label = 'Cancelled';
                             } else if (isPast) {
                               statusColor = Colors.grey;
+                              label = 'Completed';
                             } else {
                               statusColor = Colors.green[700]!;
+                              label = 'Upcoming';
                             }
                           } else {
                             statusColor = Colors.blueGrey;
+                            label = rawStatus;
                           }
-
-                          final label = rawStatus.isNotEmpty
-                              ? rawStatus
-                              : (booking.note.toLowerCase().contains('cancel')
-                                  ? 'Cancelled'
-                                  : (isPast ? 'Completed' : 'Upcoming'));
 
                           return Container(
                             padding: const EdgeInsets.symmetric(
@@ -913,7 +952,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   ],
                 ),
               ),
-              if (!isPast && !isCancelled)
+              if (showActions)
                 PopupMenuButton<String>(
                   icon: Icon(Icons.more_vert, color: Colors.grey[600]),
                   onSelected: (value) {
@@ -995,7 +1034,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               ),
             ],
           ),
-          if (!isPast && !isCancelled) ...[
+          if (showActions) ...[
             const SizedBox(height: 12),
             Builder(builder: (_) {
               // If pending: show only the Delete button.
@@ -1107,7 +1146,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
                 try {
                   // Call API to cancel booking
-                  final success =
+                  final result =
                       await apiManager.cancelCustomerBooking(booking.pkey);
 
                   // Check if widget is still mounted
@@ -1120,7 +1159,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   Navigator.of(context, rootNavigator: true).pop();
 
                   // Show result and refresh list
-                  if (success) {
+                  if (result['success'] == true) {
                     // Refresh the booking list first
                     setState(() {
                       _bookingsFuture = apiManager.ListBookingsSmart();
@@ -1129,8 +1168,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     // Try to show success message
                     try {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Booking cancelled successfully'),
+                        SnackBar(
+                          content: Text(result['message']?.toString() ??
+                              'Booking cancelled successfully'),
                           backgroundColor: Colors.green,
                         ),
                       );
@@ -1138,11 +1178,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       appLog('Could not show success snackbar: $e');
                     }
                   } else {
+                    final msg = result['message']?.toString() ??
+                        'Failed to cancel booking. Please try again.';
                     try {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'Failed to cancel booking. Please try again.'),
+                        SnackBar(
+                          content: Text(msg),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -1151,6 +1192,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     }
                   }
                 } catch (e) {
+                  // If API call itself threw, handle here
                   if (!mounted) {
                     Navigator.of(context, rootNavigator: true).pop();
                     return;
@@ -1159,7 +1201,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   // Close loading dialog
                   Navigator.of(context, rootNavigator: true).pop();
 
-                  // Try to show error
                   try {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -1168,7 +1209,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       ),
                     );
                   } catch (e) {
-                    print('Could not show error snackbar: $e');
+                    appLog('Could not show error snackbar: $e');
                   }
                 }
               },
