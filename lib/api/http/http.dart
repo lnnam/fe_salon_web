@@ -218,15 +218,14 @@ class MyHttp {
 
       appLog('Response status: ${response.statusCode}');
       // Debug: log full response body to the `app` channel so it appears in applog during development
-      if (kDebugMode) {
-        try {
-          // Send to `app` log channel (visible via developer tools/applog)
-          developer.log('=== FETCH CUSTOMER BOOKINGS RESPONSE ===\nStatus: ${response.statusCode}\n${response.body}\n=== END FETCH CUSTOMER BOOKINGS RESPONSE ===',
-              name: 'app');
-          // Also print simple raw response to console for immediate visibility
-          print('FETCH CUSTOMER BOOKINGS RAW: ${response.body}');
-        } catch (_) {}
-      }
+      try {
+        // Send to `app` log channel (visible via developer tools/applog)
+        developer.log('=== FETCH CUSTOMER BOOKINGS RESPONSE ===\nStatus: ${response.statusCode}\n${response.body}\n=== END FETCH CUSTOMER BOOKINGS RESPONSE ===',
+            name: 'app');
+        // Also print simple raw response to console for immediate visibility
+        // (unconditional so you can see it even in builds where kDebugMode is false)
+        print('FETCH CUSTOMER BOOKINGS RAW: ${response.body}');
+      } catch (_) {}
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
