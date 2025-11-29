@@ -5,7 +5,6 @@ import 'package:salonappweb/model/staff.dart';
 import 'package:salonappweb/services/helper.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:salonappweb/ui/booking/service.dart';
-import 'summary.dart';
 
 class StaffPage extends StatelessWidget {
   const StaffPage({super.key});
@@ -71,16 +70,15 @@ class StaffPage extends StatelessWidget {
                               listen: false);
                           final isEditMode = bookingProvider.onbooking.editMode;
 
-                          // Set staff
+                          // Set staff in provider
                           bookingProvider.setStaff(staff.toJson());
+                          print('✓ Staff selected: ${staff.fullname}');
 
                           if (isEditMode) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const SummaryPage()),
-                            );
+                            // Editing mode: return to Summary page with updated staff
+                            Navigator.pop(context);
                           } else {
+                            // New booking mode: go to Service selection
                             Navigator.push(
                               context,
                               MaterialPageRoute(

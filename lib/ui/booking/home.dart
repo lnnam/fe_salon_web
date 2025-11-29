@@ -25,7 +25,8 @@ class CustomerHomeScreen extends StatefulWidget {
   State<CustomerHomeScreen> createState() => _CustomerHomeScreenState();
 }
 
-class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
+class _CustomerHomeScreenState extends State<CustomerHomeScreen>
+    with WidgetsBindingObserver {
   Customer? _currentCustomer;
   Future<List<Booking>> _bookingsFuture =
       Future.value([]); // Initialize with empty list
@@ -33,17 +34,34 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Timer? _pollingTimer;
   bool _isPollingFetch = false;
   String? _lastBookingsFingerprint;
+  bool _isPageActive = true; // Track if page is visible
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeData();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pollingTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Pause polling when app is paused, resume when resumed
+    if (state == AppLifecycleState.paused) {
+      appLog('⏸ App paused - stopping bookings polling');
+      _pollingTimer?.cancel();
+    } else if (state == AppLifecycleState.resumed) {
+      appLog('▶ App resumed - restarting bookings polling');
+      if (_isPageActive) {
+        _startPollingBookings();
+      }
+    }
   }
 
   Future<void> _initializeData() async {
@@ -98,7 +116,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
         List<Booking> latest = [];
 
-       if (customerToken != null && customerToken.isNotEmpty) {
+        if (customerToken != null && customerToken.isNotEmpty) {
           // Customer logged in — use customer bookings API
           latest = await apiManager.ListBookingsSmart();
         } else {
@@ -142,7 +160,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Future<void> _loadCustomerInfo() async {
     try {
       appLog('=== _loadCustomerInfo START ===');
-     // appLog('MyAppState.customerProfile value: ${MyAppState.customerProfile}');
+      // appLog('MyAppState.customerProfile value: ${MyAppState.customerProfile}');
 
       // First check if customer profile was already loaded at app startup
       if (MyAppState.customerProfile != null) {
@@ -329,18 +347,27 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    // Reset booking when home page loads (after frame to avoid build conflict)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      try {
-        final bookingProvider =
-            Provider.of<BookingProvider>(context, listen: false);
-        bookingProvider.resetBooking();
-      } catch (e) {
-        appLog('Could not reset booking: $e');
-      }
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // This is called when the widget's dependencies change (e.g., during navigation)
+    // Use ModalRoute to check if this page is the active route
+    final isActive = ModalRoute.of(context)?.isCurrent ?? false;
 
+    if (isActive && !_isPageActive) {
+      // Page became active (user navigated back to home)
+      appLog('📍 Home page is now active - starting polling');
+      _isPageActive = true;
+      _startPollingBookings();
+    } else if (!isActive && _isPageActive) {
+      // Page became inactive (user navigated away)
+      appLog('📍 Home page is no longer active - stopping polling');
+      _isPageActive = false;
+      _pollingTimer?.cancel();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     const color = Color(COLOR_PRIMARY);
     return Scaffold(
       // AppBar replaced by an inline header to match requested layout.
@@ -418,10 +445,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          // RESET booking ONLY for new bookings
+          final bookingProvider =
+              Provider.of<BookingProvider>(context, listen: false);
+          bookingProvider.resetBooking();
+          print('✓ Booking reset for new booking');
+
           // Set customer details in BookingProvider before starting new booking
           if (_currentCustomer != null) {
-            final bookingProvider =
-                Provider.of<BookingProvider>(context, listen: false);
             bookingProvider.setCustomerDetails({
               'pkey': _currentCustomer!.customerkey,
               'customerkey': _currentCustomer!.customerkey,
@@ -633,12 +664,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               return _buildEmptyState();
             }
 
-            // Log all bookings (individual short lines)
-            for (var booking in snapshot.data!) {
-              appLog(
-                  'Booking: pkey=${booking.pkey}, customerkey=${booking.customerkey} (${booking.customerkey.runtimeType}), customer=${booking.customername}');
-            }
-
             // Also emit a single JSON-style log with full booking details
             try {
               final detailed = snapshot.data!
@@ -657,7 +682,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       })
                   .toList();
 
-              appLog('Booking list JSON: ${jsonEncode(detailed)}');
+              // appLog('Booking list JSON: ${jsonEncode(detailed)}');
             } catch (e) {
               appLog('Could not serialize bookings for JSON log: $e');
             }
@@ -784,7 +809,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         'note': booking.note,
         'status': booking.status,
       };
-      appLog('Booking detail: ${jsonEncode(b)}');
+      //    appLog('Booking detail: ${jsonEncode(b)}');
     } catch (e) {
       appLog('Could not log booking detail: $e');
     }

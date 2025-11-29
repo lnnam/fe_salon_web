@@ -53,37 +53,30 @@ class _SummaryPageState extends State<SummaryPage> {
     super.initState();
     final bookingProvider =
         Provider.of<BookingProvider>(context, listen: false);
-    //print('bookingDetails: ${bookingProvider.bookingDetails}');
 
-    // ✅ Set edit mode to true
-    //  bookingProvider.setEditMode(true);
-    // Schedule provider update after build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = Provider.of<BookingProvider>(context, listen: false);
-      provider.setEditMode(true);
-
-      // Also set booking key and model after build if editing
-      if (widget.booking != null) {
-        provider.setBookingKey(bookingkey);
-        provider.setBookingFromModel(widget.booking!);
-      }
-    });
+    // ✅ Set edit mode IMMEDIATELY based on whether we're editing or creating
+    if (widget.booking != null) {
+      print('📝 Editing existing booking - setEditMode(true)');
+      bookingProvider.setEditMode(true);
+    } else {
+      print('📝 Creating new booking - setEditMode(false)');
+      bookingProvider.setEditMode(false);
+    }
 
     if (widget.booking != null) {
-      print('widget');
+      print('📝 Editing existing booking');
 
       final booking = widget.booking!;
-      // print('Booking from widget: ${booking.toJson()}');
 
+      // Initialize bookingkey FIRST before using it in addPostFrameCallback
       bookingkey = booking.pkey;
       customerKey = booking.customerkey;
 
       print('=== SUMMARY INIT - EDITING BOOKING ===');
       print('Initial customerKey from booking: $customerKey');
       print('BookingProvider.customer: ${bookingProvider.onbooking.customer}');
-      print('MyAppState.customerProfile: ${MyAppState.customerProfile}');
-
-      // Fix: If customerKey is "Unknown", get it from MyAppState or BookingProvider
+      print(
+          'MyAppState.customerProfile: ${MyAppState.customerProfile}'); // Fix: If customerKey is "Unknown", get it from MyAppState or BookingProvider
       // Note: API returns 'pkey' field, not 'customerkey'
       if (customerKey == 'Unknown' || customerKey.isEmpty) {
         // Try MyAppState first (always loaded at app start)
@@ -153,11 +146,13 @@ class _SummaryPageState extends State<SummaryPage> {
       }
       print('==========================================');
 
+      noteController = TextEditingController(text: note);
+
       // Moved to addPostFrameCallback to avoid setState during build
       // bookingProvider.setBookingKey(bookingkey);
       // bookingProvider.setBookingFromModel(booking);
     } else {
-      print('bookingProvider');
+      print('📝 Creating new booking from BookingProvider');
 
       final bookingProvider =
           Provider.of<BookingProvider>(context, listen: false);
@@ -188,8 +183,6 @@ class _SummaryPageState extends State<SummaryPage> {
 
       noteController = TextEditingController(text: note);
     }
-
-    noteController = TextEditingController(text: note);
   }
 
   Future<void> _deleteBooking(BuildContext context) async {
@@ -253,6 +246,34 @@ class _SummaryPageState extends State<SummaryPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Print all widget data on page load
+    print('=== SUMMARY PAGE BUILD ===');
+    print('widget.booking: ${widget.booking != null ? "EXISTS" : "NULL"}');
+    if (widget.booking != null) {
+      print('booking.pkey: ${widget.booking!.pkey}');
+      print('booking.customername: ${widget.booking!.customername}');
+      print('booking.staffname: ${widget.booking!.staffname}');
+      print('booking.servicename: ${widget.booking!.servicename}');
+      print('booking.bookingdate: ${widget.booking!.bookingdate}');
+      print('booking.bookingtime: ${widget.booking!.bookingtime}');
+      print('booking.bookingstart: ${widget.booking!.bookingstart}');
+      print('booking.status: ${widget.booking!.status}');
+      print('booking.note: ${widget.booking!.note}');
+    }
+    print('customerKey: $customerKey');
+    print('customerName: $customerName');
+    print('customerEmail: $customerEmail');
+    print('customerPhone: $customerPhone');
+    print('staffKey: $staffKey');
+    print('staffName: $staffName');
+    print('serviceKey: $serviceKey');
+    print('serviceName: $serviceName');
+    print('bookingDate: $bookingDate');
+    print('bookingTime: $bookingTime');
+    print('bookingkey: $bookingkey');
+    print('note: $note');
+    print('=======================');
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Summary Booking'),
@@ -295,8 +316,26 @@ class _SummaryPageState extends State<SummaryPage> {
               label: 'Staff',
               value: staffName,
               icon: Icons.people,
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const StaffPage())),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const StaffPage()),
+                ).then((_) {
+                  // Refresh staff data from BookingProvider when returning from StaffPage
+                  setState(() {
+                    final provider =
+                        Provider.of<BookingProvider>(context, listen: false);
+                    final updatedStaff = provider.onbooking.staff;
+                    if (updatedStaff != null && updatedStaff.isNotEmpty) {
+                      // Provider stores 'fullname', not 'staffname'
+                      staffName = updatedStaff['fullname'] ?? staffName;
+                      staffKey =
+                          (updatedStaff['staffkey'] ?? staffKey).toString();
+                      print('✓ Staff refreshed: $staffName (key: $staffKey)');
+                    }
+                  });
+                });
+              },
             ),
             const SizedBox(height: 12),
             _buildInfoRow(
@@ -304,8 +343,27 @@ class _SummaryPageState extends State<SummaryPage> {
               label: 'Service',
               value: serviceName,
               icon: Icons.star,
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const ServicePage())),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ServicePage()),
+                ).then((_) {
+                  // Refresh service data from BookingProvider when returning from ServicePage
+                  setState(() {
+                    final provider =
+                        Provider.of<BookingProvider>(context, listen: false);
+                    final updatedService = provider.onbooking.service;
+                    if (updatedService != null && updatedService.isNotEmpty) {
+                      // Provider stores 'name', not 'servicename'
+                      serviceName = updatedService['name'] ?? serviceName;
+                      final key = updatedService['servicekey'];
+                      serviceKey = (key is String) ? key : key.toString();
+                      print(
+                          '✓ Service refreshed: $serviceName (key: $serviceKey)');
+                    }
+                  });
+                });
+              },
             ),
             const SizedBox(height: 12),
             const Text(

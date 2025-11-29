@@ -4,7 +4,6 @@ import 'package:salonappweb/api/api_manager.dart';
 import 'package:salonappweb/model/service.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
 import 'calendar.dart';
-import 'summary.dart';
 
 class ServicePage extends StatelessWidget {
   const ServicePage({super.key});
@@ -58,24 +57,24 @@ class ServicePage extends StatelessWidget {
                         ),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 18),
                         onTap: () {
-                          // Handle tap on service
-
                           final bookingProvider = Provider.of<BookingProvider>(
                               context,
                               listen: false);
                           final isEditMode = bookingProvider.onbooking.editMode;
 
-                          // Set service
+                          print('📝 Service selected: ${service.name}');
+                          print('📝 EditMode: $isEditMode');
+
+                          // Set service in provider
                           bookingProvider.setService(service.toJson());
 
-                          // If edit mode, go to Summary; otherwise go to Calendar
                           if (isEditMode) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const SummaryPage()),
-                            );
+                            // Editing mode: return to Summary page with updated service
+                            print('📝 Popping back to Summary (editMode=true)');
+                            Navigator.pop(context);
                           } else {
+                            // New booking mode: go to Calendar selection
+                            print('📝 Going to Calendar (editMode=false)');
                             Navigator.push(
                               context,
                               MaterialPageRoute(
