@@ -88,8 +88,6 @@ class MyHttp {
     }
   }
 
- 
-
   // Smart method that uses customer token by default
   Future<List<Booking>> ListBookingsSmart() async {
     try {
@@ -210,7 +208,8 @@ class MyHttp {
       // Debug: log full response body to the `app` channel so it appears in applog during development
       try {
         // Send to `app` log channel (visible via developer tools/applog)
-        developer.log('=== FETCH CUSTOMER BOOKINGS RESPONSE ===\nStatus: ${response.statusCode}\n${response.body}\n=== END FETCH CUSTOMER BOOKINGS RESPONSE ===',
+        developer.log(
+            '=== FETCH CUSTOMER BOOKINGS RESPONSE ===\nStatus: ${response.statusCode}\n${response.body}\n=== END FETCH CUSTOMER BOOKINGS RESPONSE ===',
             name: 'app');
         // Also print simple raw response to console for immediate visibility
         // (unconditional so you can see it even in builds where kDebugMode is false)
@@ -500,6 +499,35 @@ class MyHttp {
       appLog('✗ Cancel booking error: $e');
       appLog('Stack trace: $stackTrace');
       return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  /// Fetch booking settings (sundayoff, etc.)
+  /// Note: No token required - this is a public endpoint
+  Future<Map<String, dynamic>?> fetchBookingSettings() async {
+    try {
+      appLog('=== FETCH BOOKING SETTINGS START ===');
+      appLog('Calling: ${AppConfig.api_url_booking_settings}');
+
+      final response = await http.get(
+        Uri.parse(AppConfig.api_url_booking_settings),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      );
+
+      appLog('Response status: ${response.statusCode}');
+      appLog('=== FETCH BOOKING SETTINGS END ===');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else {
+        appLog('Fetch settings failed: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      appLog('Fetch settings error: $e');
+      return null;
     }
   }
 

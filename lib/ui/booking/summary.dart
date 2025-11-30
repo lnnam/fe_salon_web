@@ -54,14 +54,14 @@ class _SummaryPageState extends State<SummaryPage> {
     final bookingProvider =
         Provider.of<BookingProvider>(context, listen: false);
 
-    // ✅ Set edit mode IMMEDIATELY based on whether we're editing or creating
-    if (widget.booking != null) {
-      print('📝 Editing existing booking - setEditMode(true)');
-      bookingProvider.setEditMode(true);
-    } else {
-      print('📝 Creating new booking - setEditMode(false)');
-      bookingProvider.setEditMode(false);
-    }
+    // ✅ Set edit mode in addPostFrameCallback to avoid framework locked error
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.booking != null) {
+        bookingProvider.setEditMode(true);
+      } else {
+        bookingProvider.setEditMode(false);
+      }
+    });
 
     if (widget.booking != null) {
       print('📝 Editing existing booking');

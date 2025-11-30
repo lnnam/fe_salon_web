@@ -6,6 +6,7 @@ import 'package:salonappweb/constants.dart';
 // Import SchedulePage
 import 'summary.dart';
 import 'package:salonappweb/api/api_manager.dart';
+import 'package:salonappweb/services/app_logger.dart';
 
 class BookingCalendarPage extends StatefulWidget {
   const BookingCalendarPage({super.key});
@@ -18,6 +19,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
   late BookingService mockBookingService;
   final now = DateTime.now();
   List<DateTimeRange> converted = [];
+  List<int> disabledDays = [];
 
   @override
   void initState() {
@@ -27,6 +29,76 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
         serviceDuration: 15,
         bookingEnd: DateTime(now.year, now.month, now.day, 18, 0),
         bookingStart: DateTime(now.year, now.month, now.day, 9, 0));
+
+    // Fetch booking settings from backend
+    _fetchBookingSettings();
+  }
+
+  Future<void> _fetchBookingSettings() async {
+    try {
+      print('=== FETCH BOOKING SETTINGS START ===');
+      appLog('=== FETCH BOOKING SETTINGS START ===');
+
+      final response = await apiManager.fetchBookingSettings();
+
+      if (response != null) {
+        print('✓ Response received: $response');
+        appLog('✓ Response received: $response');
+
+        // Extract settings from nested structure
+        Map<String, dynamic>? settingsData;
+
+        if (response['settings'] != null &&
+            response['settings'] is List &&
+            (response['settings'] as List).isNotEmpty) {
+          settingsData = response['settings'][0] as Map<String, dynamic>;
+          print('✓ Extracted settings from settings[0]');
+          appLog('✓ Extracted settings from settings[0]');
+        } else {
+          settingsData = response;
+          print('✓ Using response directly as settings');
+          appLog('✓ Using response directly as settings');
+        }
+
+        print('sundayoff value: ${settingsData['sundayoff']}');
+        print('sundayoff type: ${settingsData['sundayoff'].runtimeType}');
+
+        appLog('sundayoff value: ${settingsData['sundayoff']}');
+        appLog('sundayoff type: ${settingsData['sundayoff'].runtimeType}');
+
+        setState(() {
+          // Check if sundayoff is true, then disable Sunday (7)
+          if (settingsData != null &&
+              (settingsData['sundayoff'] == true ||
+                  settingsData['sundayoff'] == 'true')) {
+            disabledDays = [7];
+            print('✓ Sunday DISABLED (sundayoff=true)');
+            appLog('✓ Sunday DISABLED (sundayoff=true)');
+          } else {
+            disabledDays = [];
+            print('✓ Sunday ENABLED (sundayoff=false)');
+            appLog('✓ Sunday ENABLED (sundayoff=false)');
+          }
+        });
+      } else {
+        print('✗ Booking settings returned null');
+        appLog('✗ Booking settings returned null');
+      }
+      print('=== FETCH BOOKING SETTINGS END ===');
+      appLog('=== FETCH BOOKING SETTINGS END ===');
+    } catch (e, stackTrace) {
+      print('✗ Error fetching booking settings: $e');
+      print('Stack trace: $stackTrace');
+      appLog('✗ Error fetching booking settings: $e');
+      appLog('Stack trace: $stackTrace');
+
+      // Default to disabled if error
+      setState(() {
+        disabledDays = [7];
+        print('⚠ Default to Sunday DISABLED due to error');
+        appLog('⚠ Default to Sunday DISABLED due to error');
+      });
+    }
   }
 
   Stream<dynamic>? getBookingStreamMock(
@@ -36,6 +108,13 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
 
   Future<dynamic> uploadBookingMock(
       {required BookingService newBooking}) async {
+    // Check if the selected date is Sunday (7) and if it's disabled (sundayoff = true)
+    if (newBooking.bookingStart.weekday == 7 &&
+        disabledDays.isNotEmpty &&
+        disabledDays.contains(7)) {
+      return;
+    }
+
     await Future.delayed(const Duration(seconds: 1));
     converted.add(DateTimeRange(
         start: newBooking.bookingStart, end: newBooking.bookingEnd));
@@ -129,6 +208,20 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
     required DateTime start,
     required DateTime end,
   }) async* {
+    // Block entire day if Sunday is disabled (sundayoff = true)
+    if (start.weekday == 7 &&
+        disabledDays.isNotEmpty &&
+        disabledDays.contains(7)) {
+      // Return full-day busy slot to block all time slots
+      yield [
+        DateTimeRange(
+          start: DateTime(start.year, start.month, start.day, 0, 0),
+          end: DateTime(start.year, start.month, start.day, 23, 59),
+        )
+      ];
+      return;
+    }
+
     final bookingProvider =
         Provider.of<BookingProvider>(context, listen: false);
     final staffKey = bookingProvider.bookingDetails['staffkey'] ?? 'any';
@@ -170,11 +263,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
   }
 
   List<DateTimeRange> generatePauseSlots() {
-    return [
-      DateTimeRange(
-          start: DateTime(now.year, now.month, now.day, 18, 0),
-          end: DateTime(now.year, now.month, now.day, 20, 0))
-    ];
+    return [];
   }
 
   @override
@@ -191,82 +280,85 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
           child: Builder(builder: (context) {
             const int crossAxisCount = 4;
             final bool compact = crossAxisCount >= 4;
-            return BookingCalendar(
-              bookingService: mockBookingService,
-              bookingExplanation: const SizedBox.shrink(),
-              bookingGridCrossAxisCount: crossAxisCount,
-              bookingGridChildAspectRatio: compact ? 1.2 : 1.5,
-              // When compact (many columns) hide the time text by using
-              // a zero-size text style to avoid clipped text.
-              // Use a smaller readable font in compact mode instead of hiding text
-              availableSlotTextStyle: compact
-                  ? const TextStyle(fontSize: 12, height: 1)
-                  : const TextStyle(fontSize: 14),
-              selectedSlotTextStyle: compact
-                  ? const TextStyle(fontSize: 12, height: 1)
-                  : const TextStyle(fontSize: 14),
-              bookedSlotTextStyle: compact
-                  ? const TextStyle(fontSize: 12, height: 1)
-                  : const TextStyle(fontSize: 14),
-              convertStreamResultToDateTimeRanges: (
-                      {required dynamic streamResult}) =>
-                  streamResult as List<DateTimeRange>,
-              getBookingStream: (
-                      {required DateTime start, required DateTime end}) =>
-                  getBookingStreamFromServer(start: start, end: end),
-              // convertStreamResultToDateTimeRanges: convertStreamResultMock,
-              // getBookingStream: getBookingStreamMock,
-              uploadBooking: uploadBookingMock,
-              pauseSlots: generatePauseSlots(),
-              pauseSlotText: 'Disabled',
-              hideBreakTime: false,
-              loadingWidget: const Text('Fetching data...'),
-              uploadingWidget: Center(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.95),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+            return Stack(
+              children: [
+                BookingCalendar(
+                  bookingService: mockBookingService,
+                  bookingExplanation: const SizedBox.shrink(),
+                  bookingGridCrossAxisCount: crossAxisCount,
+                  bookingGridChildAspectRatio: compact ? 1.2 : 1.5,
+                  // When compact (many columns) hide the time text by using
+                  // a zero-size text style to avoid clipped text.
+                  // Use a smaller readable font in compact mode instead of hiding text
+                  availableSlotTextStyle: compact
+                      ? const TextStyle(fontSize: 12, height: 1)
+                      : const TextStyle(fontSize: 14),
+                  selectedSlotTextStyle: compact
+                      ? const TextStyle(fontSize: 12, height: 1)
+                      : const TextStyle(fontSize: 14),
+                  bookedSlotTextStyle: compact
+                      ? const TextStyle(fontSize: 12, height: 1)
+                      : const TextStyle(fontSize: 14),
+                  convertStreamResultToDateTimeRanges: (
+                          {required dynamic streamResult}) =>
+                      streamResult as List<DateTimeRange>,
+                  getBookingStream: (
+                          {required DateTime start, required DateTime end}) =>
+                      getBookingStreamFromServer(start: start, end: end),
+                  // convertStreamResultToDateTimeRanges: convertStreamResultMock,
+                  // getBookingStream: getBookingStreamMock,
+                  uploadBooking: uploadBookingMock,
+                  pauseSlots: generatePauseSlots(),
+                  pauseSlotText: 'Disabled',
+                  hideBreakTime: false,
+                  loadingWidget: const Text('Fetching data...'),
+                  uploadingWidget: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                    ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Booking…',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Booking…',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+                  locale: 'en_GB',
+                  // ✅ Start from the current day
+                  startingDayOfWeek: StartingDayOfWeek.monday,
+                  wholeDayIsBookedWidget:
+                      const Text('Salon is closed on this day'),
+                  //disabledDates: [DateTime(2023, 1, 20)],
                 ),
-              ),
-              locale: 'en_GB',
-              // ✅ Start from the current day
-              startingDayOfWeek: StartingDayOfWeek.monday,
-              wholeDayIsBookedWidget:
-                  const Text('Sorry, for this day everything is booked'),
-              //disabledDates: [DateTime(2023, 1, 20)],
-              //disabledDays: [6, 7],
+              ],
             );
           }),
         ),

@@ -745,8 +745,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                         'note': b.note,
                       })
                   .toList();
-              appLog(
-                  'Customer ($customerKey) bookings: ${jsonEncode(custJson)}');
+              
             } catch (e) {
               appLog('Could not serialize customer bookings: $e');
             }
@@ -834,9 +833,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         !isPast &&
         allowedActionStatuses.contains(statusCategory);
 
-    appLog(
-        'Booking flags: pkey=${booking.pkey}, isPast=$isPast, statusCategory=$statusCategory, isCancelled=$isCancelled, rawStatus=${booking.status}, note=${booking.note}');
-
+   
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),

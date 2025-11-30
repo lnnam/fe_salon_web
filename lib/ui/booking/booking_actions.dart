@@ -24,6 +24,32 @@ Future<void> saveBooking(
   String customerEmail,
   String customerPhone,
 ) async {
+  appLog('\n╔════════════════════════════════════════════════╗');
+  appLog('║  🔄 SAVE BOOKING - SUBMITTING DATA TO API     ║');
+  appLog('╚════════════════════════════════════════════════╝');
+  appLog('📌 bookingKey: $bookingKey');
+  appLog('─────────────────────────────────────────────────');
+  appLog('👤 CUSTOMER:');
+  appLog('   key: $customerKey');
+  appLog('   name: $customerName');
+  appLog('   email: $customerEmail');
+  appLog('   phone: $customerPhone');
+  appLog('─────────────────────────────────────────────────');
+  appLog('👨‍💼 STAFF:');
+  appLog('   key: $staffKey');
+  appLog('   name: $staffName');
+  appLog('─────────────────────────────────────────────────');
+  appLog('💅 SERVICE:');
+  appLog('   key: $serviceKey');
+  appLog('   name: $serviceName');
+  appLog('─────────────────────────────────────────────────');
+  appLog('📅 SCHEDULE:');
+  appLog('   date: $bookingDate');
+  appLog('   time: $bookingTime');
+  appLog('─────────────────────────────────────────────────');
+  appLog('📝 NOTES: ${note.isEmpty ? "(empty)" : note}');
+  appLog('╚════════════════════════════════════════════════╝\n');
+
   setLoading(true);
 
   final result = await apiManager.SaveBooking(
@@ -42,10 +68,13 @@ Future<void> saveBooking(
   );
 
   if (result != null) {
-    print('=== BOOKING SAVED SUCCESSFULLY ===');
-    print('Token: ${result.token}');
-    print('Booking Key: ${result.bookingkey}');
-    print('Customer Key: ${result.customerkey}');
+    appLog('\n╔════════════════════════════════════════════════╗');
+    appLog('║     ✅ BOOKING SAVED SUCCESSFULLY             ║');
+    appLog('╚════════════════════════════════════════════════╝');
+    appLog('📌 Booking Key (Response): ${result.bookingkey}');
+    appLog('🔑 Token: ${result.token}');
+    appLog('👤 Customer Key: ${result.customerkey}');
+    appLog('╚════════════════════════════════════════════════╝\n');
     try {
       appLog('SaveBooking response: ${jsonEncode(result.toJson())}');
     } catch (e) {
