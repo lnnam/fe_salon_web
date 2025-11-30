@@ -4,7 +4,6 @@ import 'package:salonappweb/model/customer.dart';
 import 'package:salonappweb/api/api_manager.dart';
 import 'package:salonappweb/constants.dart';
 import 'package:intl/intl.dart';
-import 'package:salonappweb/ui/booking/staff.dart';
 import 'package:salonappweb/services/helper.dart';
 import 'summary.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +16,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:universal_html/html.dart' as html;
 import 'package:salonappweb/services/app_logger.dart';
+import 'calendar.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -445,11 +445,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // RESET booking ONLY for new bookings
+          // RESET booking for new bookings
           final bookingProvider =
               Provider.of<BookingProvider>(context, listen: false);
           bookingProvider.resetBooking();
           print('✓ Booking reset for new booking');
+
+          // Set editMode to false for new booking
+          bookingProvider.setEditMode(false);
+          print('✏️ EditMode set to false for new booking');
 
           // Set customer details in BookingProvider before starting new booking
           if (_currentCustomer != null) {
@@ -464,9 +468,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 '✓ Customer details set in BookingProvider: ${_currentCustomer!.fullname}');
           }
 
+          // Navigate to Calendar page (first step of booking flow for logged-in customers)
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const StaffPage()),
+            MaterialPageRoute(
+                builder: (context) => const BookingCalendarPage()),
           );
         },
         backgroundColor: color,
@@ -745,7 +751,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                         'note': b.note,
                       })
                   .toList();
-              
             } catch (e) {
               appLog('Could not serialize customer bookings: $e');
             }
@@ -833,7 +838,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         !isPast &&
         allowedActionStatuses.contains(statusCategory);
 
-   
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -1126,6 +1130,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   }
 
   void _handleChangeBooking(Booking booking, BuildContext context) {
+    // Set editMode to true before navigating to edit booking
+    final bookingProvider =
+        Provider.of<BookingProvider>(context, listen: false);
+    bookingProvider.setEditMode(true);
+    print('✏️ EditMode set to true for editing existing booking');
+    print('📝 Editing booking: ${booking.pkey}');
+
     // Navigate to edit booking
     Navigator.push(
       context,

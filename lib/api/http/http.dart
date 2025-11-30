@@ -506,8 +506,8 @@ class MyHttp {
   /// Note: No token required - this is a public endpoint
   Future<Map<String, dynamic>?> fetchBookingSettings() async {
     try {
-      appLog('=== FETCH BOOKING SETTINGS START ===');
-      appLog('Calling: ${AppConfig.api_url_booking_settings}');
+  //    appLog('=== FETCH BOOKING SETTINGS START ===');
+ //     appLog('Calling: ${AppConfig.api_url_booking_settings}');
 
       final response = await http.get(
         Uri.parse(AppConfig.api_url_booking_settings),
@@ -516,8 +516,8 @@ class MyHttp {
         },
       );
 
-      appLog('Response status: ${response.statusCode}');
-      appLog('=== FETCH BOOKING SETTINGS END ===');
+//      appLog('Response status: ${response.statusCode}');
+   //   appLog('=== FETCH BOOKING SETTINGS END ===');
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;

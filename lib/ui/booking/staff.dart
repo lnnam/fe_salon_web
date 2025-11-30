@@ -4,7 +4,7 @@ import 'package:salonappweb/api/api_manager.dart';
 import 'package:salonappweb/model/staff.dart';
 import 'package:salonappweb/services/helper.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
-import 'package:salonappweb/ui/booking/service.dart';
+import 'package:salonappweb/ui/booking/summary.dart';
 
 class StaffPage extends StatelessWidget {
   const StaffPage({super.key});
@@ -70,19 +70,24 @@ class StaffPage extends StatelessWidget {
                               listen: false);
                           final isEditMode = bookingProvider.onbooking.editMode;
 
+                          print('========== STAFF PAGE ==========');
+                          print('👔 EditMode at Staff: $isEditMode');
+                          print('================================');
                           // Set staff in provider
                           bookingProvider.setStaff(staff.toJson());
                           print('✓ Staff selected: ${staff.fullname}');
 
                           if (isEditMode) {
                             // Editing mode: return to Summary page with updated staff
+                            print('📤 Popping back to Summary (editMode=true)');
                             Navigator.pop(context);
                           } else {
-                            // New booking mode: go to Service selection
+                            // New booking mode: go to Summary page
+                            print('📤 Going to Summary (editMode=false)');
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const ServicePage()),
+                                  builder: (context) => const SummaryPage()),
                             );
                           }
                         },

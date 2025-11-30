@@ -24,6 +24,7 @@ class BookingProvider with ChangeNotifier {
 
   void setEditMode(bool mode) {
     _onbooking.editMode = mode;
+    print('✏️ EditMode set to: $mode');
     notifyListeners();
   }
 

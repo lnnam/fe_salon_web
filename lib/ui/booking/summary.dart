@@ -59,8 +59,11 @@ class _SummaryPageState extends State<SummaryPage> {
       if (widget.booking != null) {
         bookingProvider.setEditMode(true);
       } else {
-        bookingProvider.setEditMode(false);
+        bookingProvider.setEditMode(true);
       }
+      print('========== SUMMARY PAGE INIT ==========');
+      print('📋 EditMode at Summary: true (at initState)');
+      print('=====================================');
     });
 
     if (widget.booking != null) {

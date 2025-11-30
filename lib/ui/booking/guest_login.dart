@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:salonappweb/services/helper.dart';
 import 'package:salonappweb/constants.dart';
-import 'service.dart';
+import 'calendar.dart';
 
 class GuestLoginPage extends StatefulWidget {
   const GuestLoginPage({super.key});
@@ -139,11 +139,12 @@ class _GuestLoginPageState extends State<GuestLoginPage> {
                             'phone': _phoneController.text,
                           });
 
-                          // Navigate to Services page
+                          // Navigate to Calendar page (first step of booking flow)
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => const ServicePage()),
+                                builder: (context) =>
+                                    const BookingCalendarPage()),
                           );
                         }
                       },

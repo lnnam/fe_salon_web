@@ -4,9 +4,9 @@ import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:booking_calendar/booking_calendar.dart';
 import 'package:salonappweb/constants.dart';
 // Import SchedulePage
+import 'service.dart';
 import 'summary.dart';
 import 'package:salonappweb/api/api_manager.dart';
-import 'package:salonappweb/services/app_logger.dart';
 
 class BookingCalendarPage extends StatefulWidget {
   const BookingCalendarPage({super.key});
@@ -20,10 +20,17 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
   final now = DateTime.now();
   List<DateTimeRange> converted = [];
   List<int> disabledDays = [];
+  List<DateTime> disabledDates = [];
 
   @override
   void initState() {
     super.initState();
+    print('========== CALENDAR PAGE INIT ==========');
+    final bookingProvider =
+        Provider.of<BookingProvider>(context, listen: false);
+    print('📅 EditMode at Calendar: ${bookingProvider.onbooking.editMode}');
+    print('=========================================');
+
     mockBookingService = BookingService(
         serviceName: 'Mock Service',
         serviceDuration: 15,
@@ -36,14 +43,14 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
 
   Future<void> _fetchBookingSettings() async {
     try {
-      print('=== FETCH BOOKING SETTINGS START ===');
-      appLog('=== FETCH BOOKING SETTINGS START ===');
+      //   print('=== FETCH BOOKING SETTINGS START ===');
+      //  appLog('=== FETCH BOOKING SETTINGS START ===');
 
       final response = await apiManager.fetchBookingSettings();
 
       if (response != null) {
-        print('✓ Response received: $response');
-        appLog('✓ Response received: $response');
+        // print('✓ Response received: $response');
+        // appLog('✓ Response received: $response');
 
         // Extract settings from nested structure
         Map<String, dynamic>? settingsData;
@@ -53,18 +60,13 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
             (response['settings'] as List).isNotEmpty) {
           settingsData = response['settings'][0] as Map<String, dynamic>;
           print('✓ Extracted settings from settings[0]');
-          appLog('✓ Extracted settings from settings[0]');
         } else {
           settingsData = response;
           print('✓ Using response directly as settings');
-          appLog('✓ Using response directly as settings');
         }
 
         print('sundayoff value: ${settingsData['sundayoff']}');
         print('sundayoff type: ${settingsData['sundayoff'].runtimeType}');
-
-        appLog('sundayoff value: ${settingsData['sundayoff']}');
-        appLog('sundayoff type: ${settingsData['sundayoff'].runtimeType}');
 
         setState(() {
           // Check if sundayoff is true, then disable Sunday (7)
@@ -73,30 +75,50 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
                   settingsData['sundayoff'] == 'true')) {
             disabledDays = [7];
             print('✓ Sunday DISABLED (sundayoff=true)');
-            appLog('✓ Sunday DISABLED (sundayoff=true)');
           } else {
             disabledDays = [];
             print('✓ Sunday ENABLED (sundayoff=false)');
-            appLog('✓ Sunday ENABLED (sundayoff=false)');
+          }
+
+          // Parse listoffday (dayoff dates) if it exists
+          disabledDates = [];
+          if (settingsData != null && settingsData['listoffday'] != null) {
+            try {
+              final offDayString = settingsData['listoffday'] as String;
+              // Split by comma to get individual dates
+              final dateStrings = offDayString.split(',');
+              for (final dateStr in dateStrings) {
+                final trimmed = dateStr.trim();
+                if (trimmed.isNotEmpty) {
+                  try {
+                    final date = DateTime.parse(trimmed);
+                    disabledDates
+                        .add(DateTime(date.year, date.month, date.day));
+                    print('✓ Day OFF added: $trimmed');
+                  } catch (e) {
+                    print('⚠ Failed to parse date: $trimmed, error: $e');
+                  }
+                }
+              }
+              print('✓ Total disabled dates: ${disabledDates.length}');
+            } catch (e) {
+              print('⚠ Error parsing listoffday: $e');
+            }
           }
         });
       } else {
         print('✗ Booking settings returned null');
-        appLog('✗ Booking settings returned null');
       }
-      print('=== FETCH BOOKING SETTINGS END ===');
-      appLog('=== FETCH BOOKING SETTINGS END ===');
+      //  print('=== FETCH BOOKING SETTINGS END ===');
+      // appLog('=== FETCH BOOKING SETTINGS END ===');
     } catch (e, stackTrace) {
       print('✗ Error fetching booking settings: $e');
       print('Stack trace: $stackTrace');
-      appLog('✗ Error fetching booking settings: $e');
-      appLog('Stack trace: $stackTrace');
 
       // Default to disabled if error
       setState(() {
         disabledDays = [7];
         print('⚠ Default to Sunday DISABLED due to error');
-        appLog('⚠ Default to Sunday DISABLED due to error');
       });
     }
   }
@@ -141,11 +163,26 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
     Provider.of<BookingProvider>(context, listen: false)
         .setSchedule(scheduleData);
 
-    // Navigate to Summary page always
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SummaryPage()),
-    );
+    final bookingProvider =
+        Provider.of<BookingProvider>(context, listen: false);
+    final isEditMode = bookingProvider.onbooking.editMode;
+    print('✅ EditMode after Calendar selection: $isEditMode');
+
+    if (isEditMode) {
+      // Editing mode: go directly to Summary page
+      print('📋 Going directly to Summary (editMode=true)');
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const SummaryPage()),
+      );
+    } else {
+      // New booking mode: go to Service page
+      print('📋 Going to Service (editMode=false)');
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ServicePage()),
+      );
+    }
   } /* List<DateTimeRange> convertStreamResultMock({required dynamic streamResult}) {
   return (streamResult as List)
       .map((item) => DateTimeRange(
@@ -220,6 +257,23 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
         )
       ];
       return;
+    }
+
+    // Check if the date is in the disabled dates list (dayoff)
+    final dateToCheck = DateTime(start.year, start.month, start.day);
+    for (final disabledDate in disabledDates) {
+      if (dateToCheck.year == disabledDate.year &&
+          dateToCheck.month == disabledDate.month &&
+          dateToCheck.day == disabledDate.day) {
+        // Return full-day busy slot to block all time slots
+        yield [
+          DateTimeRange(
+            start: DateTime(start.year, start.month, start.day, 0, 0),
+            end: DateTime(start.year, start.month, start.day, 23, 59),
+          )
+        ];
+        return;
+      }
     }
 
     final bookingProvider =
@@ -354,8 +408,14 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
                   locale: 'en_GB',
                   // ✅ Start from the current day
                   startingDayOfWeek: StartingDayOfWeek.monday,
-                  wholeDayIsBookedWidget:
-                      const Text('Salon is closed on this day'),
+                  wholeDayIsBookedWidget: const Text(
+                    'Salon is closed on this day',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   //disabledDates: [DateTime(2023, 1, 20)],
                 ),
               ],
