@@ -157,6 +157,48 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     });
   }
 
+  Future<void> _refreshCustomerProfileFromCache() async {
+    try {
+      appLog('=== _refreshCustomerProfileFromCache START ===');
+      final prefs = await SharedPreferences.getInstance();
+      final cachedProfile = prefs.getString('cached_customer_profile');
+
+      if (cachedProfile != null && cachedProfile.isNotEmpty) {
+        final profileData = jsonDecode(cachedProfile) as Map<String, dynamic>;
+        
+        // Only update if the profile data is different from current
+        if (_currentCustomer != null) {
+          final currentFullname = _currentCustomer!.fullname;
+          final newFullname = profileData['fullname'] ?? 'Unknown';
+          
+          if (currentFullname != newFullname) {
+            appLog('✓ Cached profile has changed, refreshing UI');
+            setState(() {
+              if (profileData.containsKey('pkey') ||
+                  profileData.containsKey('photobase64')) {
+                _currentCustomer = Customer.fromJson(profileData);
+              } else {
+                _currentCustomer = Customer(
+                  customerkey: profileData['customerkey'] ?? 0,
+                  fullname: profileData['fullname'] ?? 'Guest',
+                  email: profileData['email'] ?? '',
+                  phone: profileData['phone'] ?? '',
+                  photo: profileData['photo'] ?? '',
+                  dob: profileData['dob'] ?? '',
+                );
+              }
+            });
+            MyAppState.customerProfile = profileData;
+            appLog('✓ Customer profile refreshed: ${_currentCustomer?.fullname}');
+          }
+        }
+      }
+      appLog('=== _refreshCustomerProfileFromCache END ===');
+    } catch (e) {
+      appLog('✗ Error refreshing customer profile from cache: $e');
+    }
+  }
+
   Future<void> _loadCustomerInfo() async {
     try {
       appLog('=== _loadCustomerInfo START ===');
@@ -358,6 +400,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       appLog('📍 Home page is now active - starting polling');
       _isPageActive = true;
       _startPollingBookings();
+      
+      // Refresh customer profile from cache in case it was updated elsewhere
+      _refreshCustomerProfileFromCache();
     } else if (!isActive && _isPageActive) {
       // Page became inactive (user navigated away)
       appLog('📍 Home page is no longer active - stopping polling');
@@ -672,23 +717,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
             // Also emit a single JSON-style log with full booking details
             try {
-              final detailed = snapshot.data!
-                  .map((b) => {
-                        'pkey': b.pkey,
-                        'customerkey': b.customerkey,
-                        'customername': b.customername,
-                        'staffname': b.staffname,
-                        'servicename': b.servicename,
-                        'bookingdate': b.bookingdate,
-                        'bookingstart': b.bookingstart.toIso8601String(),
-                        'created_datetime':
-                            b.created_datetime.toIso8601String(),
-                        'note': b.note,
-                        'status': b.status,
-                      })
-                  .toList();
-
-              // appLog('Booking list JSON: ${jsonEncode(detailed)}');
+              // appLog('Booking list JSON: ${jsonEncode(snapshot.data)}');
             } catch (e) {
               appLog('Could not serialize bookings for JSON log: $e');
             }
@@ -736,21 +765,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
             // Log only the bookings we will display for the current customer
             try {
-              final customerKey = _currentCustomer != null
-                  ? _currentCustomer!.customerkey.toString()
-                  : 'guest';
-              final custJson = customerBookings
-                  .map((b) => {
-                        'pkey': b.pkey,
-                        'customerkey': b.customerkey,
-                        'customername': b.customername,
-                        'servicename': b.servicename,
-                        'staffname': b.staffname,
-                        'bookingdate': b.bookingdate,
-                        'bookingstart': b.bookingstart.toIso8601String(),
-                        'note': b.note,
-                      })
-                  .toList();
+              // customerBookings to be displayed
             } catch (e) {
               appLog('Could not serialize customer bookings: $e');
             }
@@ -800,20 +815,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   Widget _buildBookingCard(Booking booking, Color color, BuildContext context) {
     // Debug: log full booking data for inspection
     try {
-      final b = {
-        'pkey': booking.pkey,
-        'customerkey': booking.customerkey,
-        'customername': booking.customername,
-        'staffname': booking.staffname,
-        'servicename': booking.servicename,
-        'bookingdate': booking.bookingdate,
-        'bookingstart': booking.bookingstart.toIso8601String(),
-        'bookingtime': booking.bookingtime.toIso8601String(),
-        'created_datetime': booking.created_datetime.toIso8601String(),
-        'note': booking.note,
-        'status': booking.status,
-      };
-      //    appLog('Booking detail: ${jsonEncode(b)}');
+      //    appLog('Booking detail: ${booking.pkey}');
     } catch (e) {
       appLog('Could not log booking detail: $e');
     }
@@ -1298,13 +1300,67 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 content: Text('No customer loaded'),
               ));
             } else {
-              Navigator.push(
+              final updatedCustomer = await Navigator.push<Customer>(
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
                       CustomerSetMemberPage(customer: _currentCustomer!),
                 ),
               );
+
+              // If customer was updated in the Set Member page, refresh the profile
+              if (updatedCustomer != null) {
+                appLog('✓ Received updated customer from Set Member page');
+
+                // Create the updated profile object
+                final updatedProfile = {
+                  'pkey': updatedCustomer.customerkey,
+                  'customerkey': updatedCustomer.customerkey,
+                  'fullname': updatedCustomer.fullname,
+                  'email': updatedCustomer.email,
+                  'phone': updatedCustomer.phone,
+                  'photobase64': updatedCustomer.photo,
+                  'birthday': updatedCustomer.dob,
+                };
+
+                // Update all caches and state
+                setState(() {
+                  _currentCustomer = updatedCustomer;
+                });
+
+                // Update the global MyAppState
+                MyAppState.customerProfile = updatedProfile;
+
+                // Update BookingProvider
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  try {
+                    final bookingProvider =
+                        Provider.of<BookingProvider>(context, listen: false);
+                    bookingProvider.setCustomerDetails({
+                      'pkey': updatedCustomer.customerkey,
+                      'customerkey': updatedCustomer.customerkey,
+                      'fullname': updatedCustomer.fullname,
+                      'email': updatedCustomer.email,
+                      'phone': updatedCustomer.phone,
+                      'dob': updatedCustomer.dob,
+                    });
+                    appLog('✓ BookingProvider updated with new customer details');
+                  } catch (e) {
+                    appLog('Could not update BookingProvider: $e');
+                  }
+                });
+
+                // Cache the updated profile to SharedPreferences
+                try {
+                  final prefs = await SharedPreferences.getInstance();
+                  final encodedProfile = jsonEncode(updatedProfile);
+                  await prefs.setString('cached_customer_profile', encodedProfile);
+                  appLog('✓ Updated cached customer profile in SharedPreferences');
+                  appLog('Updated profile: ${updatedCustomer.fullname}, ${updatedCustomer.email}, ${updatedCustomer.phone}');
+                } catch (e) {
+                  appLog('Could not cache updated profile: $e');
+                }
+              }
             }
           } catch (e) {
             appLog('Could not open Set Member: $e');

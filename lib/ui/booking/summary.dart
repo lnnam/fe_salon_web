@@ -160,7 +160,7 @@ class _SummaryPageState extends State<SummaryPage> {
       final bookingProvider =
           Provider.of<BookingProvider>(context, listen: false);
       final bookingDetails = bookingProvider.bookingDetails;
-      //   print('Booking : ${bookingDetails}');
+       print('Booking : ${bookingDetails}');
       bookingkey = bookingDetails['bookingkey'] ?? 0;
       customerKey = bookingDetails['customerkey'] ?? '';
       serviceKey = bookingDetails['servicekey'] ?? '';
@@ -308,10 +308,36 @@ class _SummaryPageState extends State<SummaryPage> {
               value:
                   '${_formatDate(bookingDate)} at ${_formatTime(bookingTime)}',
               icon: Icons.schedule,
-              onTap: () => Navigator.push(
+              onTap: () {
+                Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) => const BookingCalendarPage())),
+                      builder: (_) => BookingCalendarPage(booking: widget.booking)),
+                ).then((_) {
+                  // Refresh booking time from BookingProvider when returning from CalendarPage
+                  setState(() {
+                    final provider =
+                        Provider.of<BookingProvider>(context, listen: false);
+                    final schedule = provider.onbooking.schedule;
+                    print('📅 After Calendar - schedule from provider: $schedule');
+                    if (schedule != null && schedule['bookingStart'] != null) {
+                      try {
+                        DateTime dateTime =
+                            DateTime.parse(schedule['bookingStart']);
+                        bookingDate = DateFormat('yyyy-MM-dd').format(dateTime);
+                        bookingTime =
+                            DateFormat('HH:mm, dd/MM/yyyy').format(dateTime);
+                        print(
+                            '✓ Schedule refreshed: $bookingDate at $bookingTime');
+                      } catch (e) {
+                        print('❌ Error parsing schedule: $e');
+                      }
+                    } else {
+                      print('⚠️ schedule is null or bookingStart is missing');
+                    }
+                  });
+                });
+              },
             ),
             const SizedBox(height: 12),
             _buildInfoRow(

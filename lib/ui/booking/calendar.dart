@@ -3,13 +3,15 @@ import 'package:provider/provider.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
 import 'package:booking_calendar/booking_calendar.dart';
 import 'package:salonappweb/constants.dart';
+import 'package:salonappweb/model/booking.dart';
 // Import SchedulePage
 import 'service.dart';
-import 'summary.dart';
 import 'package:salonappweb/api/api_manager.dart';
 
 class BookingCalendarPage extends StatefulWidget {
-  const BookingCalendarPage({super.key});
+  final Booking? booking;
+
+  const BookingCalendarPage({super.key, this.booking});
 
   @override
   _BookingCalendarPageState createState() => _BookingCalendarPageState();
@@ -130,10 +132,12 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
 
   Future<dynamic> uploadBookingMock(
       {required BookingService newBooking}) async {
+    print('🟢 uploadBookingMock CALLED');
     // Check if the selected date is Sunday (7) and if it's disabled (sundayoff = true)
     if (newBooking.bookingStart.weekday == 7 &&
         disabledDays.isNotEmpty &&
         disabledDays.contains(7)) {
+      print('🔴 Sunday disabled - returning early');
       return;
     }
 
@@ -158,7 +162,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
       'serviceDuration': newBooking.serviceDuration,
     };
 
-    // print('Formatted schedule data: $scheduleData');
+    print('📤 Setting schedule in provider: $scheduleData');
 
     Provider.of<BookingProvider>(context, listen: false)
         .setSchedule(scheduleData);
@@ -169,12 +173,11 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
     print('✅ EditMode after Calendar selection: $isEditMode');
 
     if (isEditMode) {
-      // Editing mode: go directly to Summary page
-      print('📋 Going directly to Summary (editMode=true)');
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const SummaryPage()),
-      );
+      // Editing mode: pop back to Summary page (don't push a new one)
+      print('📋 Popping back to Summary (editMode=true)');
+      if (mounted) {
+        Navigator.pop(context);
+      }
     } else {
       // New booking mode: go to Service page
       print('📋 Going to Service (editMode=false)');
