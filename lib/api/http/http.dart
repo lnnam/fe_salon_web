@@ -506,8 +506,8 @@ class MyHttp {
   /// Note: No token required - this is a public endpoint
   Future<Map<String, dynamic>?> fetchBookingSettings() async {
     try {
-  //    appLog('=== FETCH BOOKING SETTINGS START ===');
- //     appLog('Calling: ${AppConfig.api_url_booking_settings}');
+      //    appLog('=== FETCH BOOKING SETTINGS START ===');
+      //     appLog('Calling: ${AppConfig.api_url_booking_settings}');
 
       final response = await http.get(
         Uri.parse(AppConfig.api_url_booking_settings),
@@ -517,7 +517,7 @@ class MyHttp {
       );
 
 //      appLog('Response status: ${response.statusCode}');
-   //   appLog('=== FETCH BOOKING SETTINGS END ===');
+      //   appLog('=== FETCH BOOKING SETTINGS END ===');
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
@@ -794,26 +794,40 @@ class MyHttp {
 
       if (response.statusCode == 200) {
         final dynamic data = jsonDecode(response.body);
-        // print('Raw API data: $data');
+        print('===== FETCH AVAILABILITY DATA =====');
+        print('Raw API response: $data');
+        print('Response type: ${data.runtimeType}');
 
         // If the response is a List, return as before
         if (data is List) {
-          return data
+          print('Response is List with ${data.length} items');
+          final result = data
               .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
               .toList();
+          print('Final slots data: ${jsonEncode(result)}');
+          print('====================================');
+          return result;
         }
 
         // If the response is a Map, extract 'slots' as a list
         if (data is Map && data['slots'] != null) {
           final slotsData = data['slots'];
+          print('Response is Map with slots key');
+          print('Slots type: ${slotsData.runtimeType}');
           if (slotsData is List) {
-            return slotsData
+            print('Slots is List with ${slotsData.length} items');
+            final result = slotsData
                 .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
                 .toList();
+            print('Final slots data: ${jsonEncode(result)}');
+            print('====================================');
+            return result;
           }
         }
 
         // fallback
+        print('No valid slots found - returning empty list');
+        print('====================================');
         return [];
       } else {
         appLog('Fetch availability failed: ${response.statusCode}');

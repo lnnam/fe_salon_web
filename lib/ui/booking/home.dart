@@ -16,7 +16,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:universal_html/html.dart' as html;
 import 'package:salonappweb/services/app_logger.dart';
-import 'calendar.dart';
+import 'service.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -165,12 +165,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
       if (cachedProfile != null && cachedProfile.isNotEmpty) {
         final profileData = jsonDecode(cachedProfile) as Map<String, dynamic>;
-        
+
         // Only update if the profile data is different from current
         if (_currentCustomer != null) {
           final currentFullname = _currentCustomer!.fullname;
           final newFullname = profileData['fullname'] ?? 'Unknown';
-          
+
           if (currentFullname != newFullname) {
             appLog('✓ Cached profile has changed, refreshing UI');
             setState(() {
@@ -189,7 +189,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               }
             });
             MyAppState.customerProfile = profileData;
-            appLog('✓ Customer profile refreshed: ${_currentCustomer?.fullname}');
+            appLog(
+                '✓ Customer profile refreshed: ${_currentCustomer?.fullname}');
           }
         }
       }
@@ -400,7 +401,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       appLog('📍 Home page is now active - starting polling');
       _isPageActive = true;
       _startPollingBookings();
-      
+
       // Refresh customer profile from cache in case it was updated elsewhere
       _refreshCustomerProfileFromCache();
     } else if (!isActive && _isPageActive) {
@@ -513,11 +514,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 '✓ Customer details set in BookingProvider: ${_currentCustomer!.fullname}');
           }
 
-          // Navigate to Calendar page (first step of booking flow for logged-in customers)
+          // Navigate to Service page (first step of booking flow for logged-in customers)
           Navigator.push(
             context,
-            MaterialPageRoute(
-                builder: (context) => const BookingCalendarPage()),
+            MaterialPageRoute(builder: (context) => const ServicePage()),
           );
         },
         backgroundColor: color,
@@ -1344,7 +1344,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       'phone': updatedCustomer.phone,
                       'dob': updatedCustomer.dob,
                     });
-                    appLog('✓ BookingProvider updated with new customer details');
+                    appLog(
+                        '✓ BookingProvider updated with new customer details');
                   } catch (e) {
                     appLog('Could not update BookingProvider: $e');
                   }
@@ -1354,9 +1355,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 try {
                   final prefs = await SharedPreferences.getInstance();
                   final encodedProfile = jsonEncode(updatedProfile);
-                  await prefs.setString('cached_customer_profile', encodedProfile);
-                  appLog('✓ Updated cached customer profile in SharedPreferences');
-                  appLog('Updated profile: ${updatedCustomer.fullname}, ${updatedCustomer.email}, ${updatedCustomer.phone}');
+                  await prefs.setString(
+                      'cached_customer_profile', encodedProfile);
+                  appLog(
+                      '✓ Updated cached customer profile in SharedPreferences');
+                  appLog(
+                      'Updated profile: ${updatedCustomer.fullname}, ${updatedCustomer.email}, ${updatedCustomer.phone}');
                 } catch (e) {
                   appLog('Could not cache updated profile: $e');
                 }

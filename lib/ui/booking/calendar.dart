@@ -5,7 +5,7 @@ import 'package:booking_calendar/booking_calendar.dart';
 import 'package:salonappweb/constants.dart';
 import 'package:salonappweb/model/booking.dart';
 // Import SchedulePage
-import 'service.dart';
+import 'summary.dart';
 import 'package:salonappweb/api/api_manager.dart';
 
 class BookingCalendarPage extends StatefulWidget {
@@ -27,12 +27,6 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
   @override
   void initState() {
     super.initState();
-    print('========== CALENDAR PAGE INIT ==========');
-    final bookingProvider =
-        Provider.of<BookingProvider>(context, listen: false);
-    print('📅 EditMode at Calendar: ${bookingProvider.onbooking.editMode}');
-    print('=========================================');
-
     mockBookingService = BookingService(
         serviceName: 'Mock Service',
         serviceDuration: 15,
@@ -45,15 +39,9 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
 
   Future<void> _fetchBookingSettings() async {
     try {
-      //   print('=== FETCH BOOKING SETTINGS START ===');
-      //  appLog('=== FETCH BOOKING SETTINGS START ===');
-
       final response = await apiManager.fetchBookingSettings();
 
       if (response != null) {
-        // print('✓ Response received: $response');
-        // appLog('✓ Response received: $response');
-
         // Extract settings from nested structure
         Map<String, dynamic>? settingsData;
 
@@ -61,14 +49,9 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
             response['settings'] is List &&
             (response['settings'] as List).isNotEmpty) {
           settingsData = response['settings'][0] as Map<String, dynamic>;
-          print('✓ Extracted settings from settings[0]');
         } else {
           settingsData = response;
-          print('✓ Using response directly as settings');
         }
-
-        print('sundayoff value: ${settingsData['sundayoff']}');
-        print('sundayoff type: ${settingsData['sundayoff'].runtimeType}');
 
         setState(() {
           // Check if sundayoff is true, then disable Sunday (7)
@@ -76,10 +59,8 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
               (settingsData['sundayoff'] == true ||
                   settingsData['sundayoff'] == 'true')) {
             disabledDays = [7];
-            print('✓ Sunday DISABLED (sundayoff=true)');
           } else {
             disabledDays = [];
-            print('✓ Sunday ENABLED (sundayoff=false)');
           }
 
           // Parse listoffday (dayoff dates) if it exists
@@ -96,31 +77,17 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
                     final date = DateTime.parse(trimmed);
                     disabledDates
                         .add(DateTime(date.year, date.month, date.day));
-                    print('✓ Day OFF added: $trimmed');
-                  } catch (e) {
-                    print('⚠ Failed to parse date: $trimmed, error: $e');
-                  }
+                  } catch (e) {}
                 }
               }
-              print('✓ Total disabled dates: ${disabledDates.length}');
-            } catch (e) {
-              print('⚠ Error parsing listoffday: $e');
-            }
+            } catch (e) {}
           }
         });
-      } else {
-        print('✗ Booking settings returned null');
       }
-      //  print('=== FETCH BOOKING SETTINGS END ===');
-      // appLog('=== FETCH BOOKING SETTINGS END ===');
-    } catch (e, stackTrace) {
-      print('✗ Error fetching booking settings: $e');
-      print('Stack trace: $stackTrace');
-
+    } catch (e) {
       // Default to disabled if error
       setState(() {
         disabledDays = [7];
-        print('⚠ Default to Sunday DISABLED due to error');
       });
     }
   }
@@ -132,7 +99,6 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
 
   Future<dynamic> uploadBookingMock(
       {required BookingService newBooking}) async {
-    print('🟢 uploadBookingMock CALLED');
     // Check if the selected date is Sunday (7) and if it's disabled (sundayoff = true)
     if (newBooking.bookingStart.weekday == 7 &&
         disabledDays.isNotEmpty &&
@@ -179,11 +145,11 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
         Navigator.pop(context);
       }
     } else {
-      // New booking mode: go to Service page
-      print('📋 Going to Service (editMode=false)');
+      // New booking mode: go to Summary page
+      print('📋 Going to Summary (editMode=false)');
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const ServicePage()),
+        MaterialPageRoute(builder: (context) => const SummaryPage()),
       );
     }
   } /* List<DateTimeRange> convertStreamResultMock({required dynamic streamResult}) {

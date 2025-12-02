@@ -4,7 +4,7 @@ import 'package:salonappweb/api/api_manager.dart';
 import 'package:salonappweb/model/staff.dart';
 import 'package:salonappweb/services/helper.dart';
 import 'package:salonappweb/provider/booking.provider.dart';
-import 'package:salonappweb/ui/booking/summary.dart';
+import 'package:salonappweb/ui/booking/calendar.dart';
 
 class StaffPage extends StatelessWidget {
   const StaffPage({super.key});
@@ -82,12 +82,13 @@ class StaffPage extends StatelessWidget {
                             print('📤 Popping back to Summary (editMode=true)');
                             Navigator.pop(context);
                           } else {
-                            // New booking mode: go to Summary page
-                            print('📤 Going to Summary (editMode=false)');
+                            // New booking mode: go to Calendar page
+                            print('📤 Going to Calendar (editMode=false)');
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const SummaryPage()),
+                                  builder: (context) =>
+                                      const BookingCalendarPage()),
                             );
                           }
                         },
