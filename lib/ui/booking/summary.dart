@@ -160,7 +160,7 @@ class _SummaryPageState extends State<SummaryPage> {
       final bookingProvider =
           Provider.of<BookingProvider>(context, listen: false);
       final bookingDetails = bookingProvider.bookingDetails;
-       print('Booking : ${bookingDetails}');
+      print('Booking : ${bookingDetails}');
       bookingkey = bookingDetails['bookingkey'] ?? 0;
       customerKey = bookingDetails['customerkey'] ?? '';
       serviceKey = bookingDetails['servicekey'] ?? '';
@@ -312,14 +312,16 @@ class _SummaryPageState extends State<SummaryPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) => BookingCalendarPage(booking: widget.booking)),
+                      builder: (_) =>
+                          BookingCalendarPage(booking: widget.booking)),
                 ).then((_) {
                   // Refresh booking time from BookingProvider when returning from CalendarPage
                   setState(() {
                     final provider =
                         Provider.of<BookingProvider>(context, listen: false);
                     final schedule = provider.onbooking.schedule;
-                    print('📅 After Calendar - schedule from provider: $schedule');
+                    print(
+                        '📅 After Calendar - schedule from provider: $schedule');
                     if (schedule != null && schedule['bookingStart'] != null) {
                       try {
                         DateTime dateTime =
@@ -475,23 +477,6 @@ class _SummaryPageState extends State<SummaryPage> {
                               color: Colors.white),
                         ),
                 ),
-                const SizedBox(height: 12),
-                if (widget.booking != null)
-                  TextButton(
-                    onPressed: isLoading
-                        ? null
-                        : () => deleteBookingAction(
-                              context,
-                              isLoading,
-                              (val) => setState(() => isLoading = val),
-                              widget.booking,
-                            ),
-                    child: const Text(
-                      'Delete',
-                      style: TextStyle(
-                          color: Colors.red, fontWeight: FontWeight.w600),
-                    ),
-                  ),
               ],
             ),
           ],

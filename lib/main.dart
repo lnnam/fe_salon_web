@@ -86,7 +86,7 @@ class MyAppState extends State<MyApp> with WidgetsBindingObserver {
         final profile = await _fetchCustomerProfile(customerToken);
         setState(() {
           customerProfile = profile;
-          print('Customer profile loaded: $customerProfile');
+          //print('Customer profile loaded: $customerProfile');
         });
       } catch (e) {
         print('Error loading customer profile at startup: $e');

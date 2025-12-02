@@ -81,7 +81,7 @@ Future<void> saveBooking(
       appLog('Could not JSON-encode SaveBooking result: $e');
     }
 
-    // Send booking confirmation email
+   /*  // Send booking confirmation email
     if (customerEmail.isNotEmpty) {
       print('=== SENDING CONFIRMATION EMAIL ===');
       final emailSent = await apiManager.sendBookingConfirmationEmail(
@@ -97,7 +97,7 @@ Future<void> saveBooking(
       }
     } else {
       print('⚠ No customer email provided, skipping confirmation email');
-    }
+    } */
 
     // Fetch and cache customer profile
     final prefs = await SharedPreferences.getInstance();
