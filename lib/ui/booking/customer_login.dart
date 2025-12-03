@@ -244,7 +244,7 @@ class _CustomerLoginPageState extends State<CustomerLoginPage> {
                     }
                   },
                   decoration: InputDecoration(
-                    labelText: 'Email or Phone',
+                    labelText: 'Email or Phonedsdasdasdsadasdas',
                     hintText: 'Enter your email or phone number',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
