@@ -638,7 +638,7 @@ class MyHttp {
           final result = data
               .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
               .toList();
-          print('Final slots data: ${jsonEncode(result)}');
+     //     print('Final slots data: ${jsonEncode(result)}');
           print('====================================');
           return result;
         }
@@ -653,7 +653,7 @@ class MyHttp {
             final result = slotsData
                 .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
                 .toList();
-            print('Final slots data: ${jsonEncode(result)}');
+         //   print('Final slots data: ${jsonEncode(result)}');
             print('====================================');
             return result;
           }

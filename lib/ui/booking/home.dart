@@ -15,7 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:universal_html/html.dart' as html;
-import 'service.dart';
+import 'service.dart'; // used by Navigator to ServicePage
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -49,42 +49,24 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Pause polling when app is paused, resume when resumed
-    if (state == AppLifecycleState.paused) {
-      _pollingTimer?.cancel();
-    } else if (state == AppLifecycleState.resumed) {
-      if (_isPageActive) {
-        _startPollingBookings();
-      }
-    }
-  }
-
   Future<void> _initializeData() async {
-    // Load customer info first
     await _loadCustomerInfo();
 
-    // Check if we have a customer token before trying to load bookings
     final prefs = await SharedPreferences.getInstance();
     final customerToken = prefs.getString('customer_token');
 
-    if (customerToken != null && customerToken.isNotEmpty) {
-      // Then load bookings after customer profile is loaded
+    if (mounted) {
       setState(() {
-        _bookingsFuture = apiManager.ListBookingsSmart();
+        if (customerToken != null && customerToken.isNotEmpty) {
+          _bookingsFuture = apiManager.ListBookingsSmart();
+        } else {
+          _bookingsFuture = Future.value([]);
+        }
         _isLoadingProfile = false;
       });
-      _startPollingBookings();
-    } else {
-      // No token, just mark loading as complete
-      setState(() {
-        _bookingsFuture = Future.value([]); // Empty list
-        _isLoadingProfile = false;
-      });
-      // Still start polling for admin user if present
-      _startPollingBookings();
     }
+
+    _startPollingBookings();
   }
 
   void _startPollingBookings() {
@@ -135,7 +117,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             _bookingsFuture = Future.value(latest);
           });
         }
-      } catch (e) {
       } finally {
         _isPollingFetch = false;
       }
@@ -262,7 +243,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               });
             } catch (e) {}
           });
-
           return;
         } catch (e) {
           // Continue to API fetch if cache parsing fails
@@ -347,107 +327,80 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     const color = Color(COLOR_PRIMARY);
     return Scaffold(
       // AppBar replaced by an inline header to match requested layout.
-      body: Stack(
-        children: [
-          // Top header (replaces AppBar)
-          SafeArea(
-            child: Container(
-              height: kToolbarHeight,
-              color: color,
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Row(
-                children: [
-                  // Home button on the top-left
-                  TextButton.icon(
-                    onPressed: () {
-                      try {
-                        html.window.open(
-                            'https://www.greatyarmouthnails.com', '_blank');
-                      } catch (e) {}
-                    },
-                    icon: const Icon(Icons.home, color: Colors.white),
-                    label: const Text('Home',
-                        style: TextStyle(color: Colors.white)),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/bg.jpg'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Stack(
+          children: [
+            // Top header (replaces AppBar)
+            SafeArea(
+              child: Container(
+                height: kToolbarHeight,
+                color: color,
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Row(
+                  children: [
+                    // Home button on the top-left
+                    TextButton.icon(
+                      onPressed: () {
+                        try {
+                          html.window.open(
+                              'https://www.greatyarmouthnails.com', '_blank');
+                        } catch (e) {}
+                      },
+                      icon: const Icon(Icons.home, color: Colors.white),
+                      label: const Text('Home',
+                          style: TextStyle(color: Colors.white)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Spacer(),
-                  // Top-right profile/menu
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: _buildTopMenu(),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    const Spacer(),
+                    // Top-right profile/menu
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: _buildTopMenu(),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // Main page content sits below the header
-          Padding(
-            padding: const EdgeInsets.only(top: kToolbarHeight),
-            child: Center(
-              child: SingleChildScrollView(
-                child: Container(
-                  // reduce vertical padding to avoid large bottom gap
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 12.0),
-                  constraints: const BoxConstraints(maxWidth: 700),
-                  // Use a Stack so the menu can be positioned relative to the centered container
-                  child: Stack(
-                    children: [
-                      Column(
-                        // align content to the top so it doesn't get vertically centered
-                        // which causes a larger bottom gap when content is short
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          _buildProfileSection(context, color),
-                          const SizedBox(height: 32),
-                          _buildBookingsSection(context, color),
-                          const SizedBox(height: 16),
-                        ],
-                      ),
-                    ],
+            // Main page content sits below the header
+            Padding(
+              padding: const EdgeInsets.only(top: kToolbarHeight),
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Container(
+                    color: Colors.white,
+                    // reduce vertical padding to avoid large bottom gap
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 12.0),
+                    constraints: const BoxConstraints(maxWidth: 700),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        _buildProfileSection(context, color),
+                        const SizedBox(height: 32),
+                        _buildBookingsSection(context, color),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+            // ...existing code...
+          ],
+        ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // RESET booking for new bookings
-          final bookingProvider =
-              Provider.of<BookingProvider>(context, listen: false);
-          bookingProvider.resetBooking();
-
-          // Set editMode to false for new booking
-          bookingProvider.setEditMode(false);
-
-          // Set customer details in BookingProvider before starting new booking
-          if (_currentCustomer != null) {
-            bookingProvider.setCustomerDetails({
-              'pkey': _currentCustomer!.customerkey,
-              'customerkey': _currentCustomer!.customerkey,
-              'fullname': _currentCustomer!.fullname,
-              'email': _currentCustomer!.email,
-              'phone': _currentCustomer!.phone,
-            });
-          }
-
-          // Navigate to Service page (first step of booking flow for logged-in customers)
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ServicePage()),
-          );
-        },
-        backgroundColor: color,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('New Booking', style: TextStyle(color: Colors.white)),
-      ),
+      // Removed floatingActionButton; using right-side button instead
     );
   }
 
@@ -605,13 +558,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         FutureBuilder<List<Booking>>(
           future: _bookingsFuture,
           builder: (context, snapshot) {
+            Widget bookingListWidget;
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Padding(
+              bookingListWidget = const Padding(
                 padding: EdgeInsets.all(32.0),
                 child: Center(child: CircularProgressIndicator()),
               );
             } else if (snapshot.hasError) {
-              return Padding(
+              bookingListWidget = Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: Center(
                   child: Column(
@@ -634,50 +588,80 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 ),
               );
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return _buildEmptyState();
-            }
-
-            // Log current customer key info
-
-            // When using customer token API, bookings are already filtered by backend
-            // No need to filter again - just use all returned bookings
-            List<Booking> customerBookings;
-
-            // Check if we need to filter (admin API returns all bookings)
-            // If customerkey is "Unknown", it means customer API already filtered
-            final needsFiltering =
-                snapshot.data!.any((b) => b.customerkey != 'Unknown');
-
-            if (needsFiltering && _currentCustomer != null) {
-              // Admin API case: filter by customerkey
-              customerBookings = snapshot.data!.where((booking) {
-                final match = booking.customerkey ==
-                    _currentCustomer!.customerkey.toString();
-                return match;
-              }).toList();
+              bookingListWidget = _buildEmptyState();
             } else {
-              // Customer API case: all bookings are already for this customer
-              customerBookings = snapshot.data!;
+              List<Booking> customerBookings;
+              final needsFiltering =
+                  snapshot.data!.any((b) => b.customerkey != 'Unknown');
+              if (needsFiltering && _currentCustomer != null) {
+                customerBookings = snapshot.data!.where((booking) {
+                  final match = booking.customerkey ==
+                      _currentCustomer!.customerkey.toString();
+                  return match;
+                }).toList();
+              } else {
+                customerBookings = snapshot.data!;
+              }
+              if (customerBookings.isEmpty) {
+                bookingListWidget = _buildEmptyState();
+              } else {
+                customerBookings.sort((a, b) {
+                  final dateA = DateTime.parse(a.bookingdate);
+                  final dateB = DateTime.parse(b.bookingdate);
+                  return dateA.compareTo(dateB);
+                });
+                bookingListWidget = Column(
+                  children: customerBookings.map((booking) {
+                    return _buildBookingCard(booking, color, context);
+                  }).toList(),
+                );
+              }
             }
-
-            if (customerBookings.isEmpty) {
-              print(
-                  'No bookings found for customer key: ${_currentCustomer?.customerkey}');
-              print('=== END BOOKING LIST ===\n');
-              return _buildEmptyState();
-            }
-
-            // Sort bookings by date (oldest first)
-            customerBookings.sort((a, b) {
-              final dateA = DateTime.parse(a.bookingdate);
-              final dateB = DateTime.parse(b.bookingdate);
-              return dateA.compareTo(dateB);
-            });
-
+            // Add the New Booking button inside the white card, below the list
             return Column(
-              children: customerBookings.map((booking) {
-                return _buildBookingCard(booking, color, context);
-              }).toList(),
+              children: [
+                bookingListWidget,
+                const SizedBox(height: 24),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      final bookingProvider =
+                          Provider.of<BookingProvider>(context, listen: false);
+                      bookingProvider.resetBooking();
+                      bookingProvider.setEditMode(false);
+                      if (_currentCustomer != null) {
+                        bookingProvider.setCustomerDetails({
+                          'pkey': _currentCustomer!.customerkey,
+                          'customerkey': _currentCustomer!.customerkey,
+                          'fullname': _currentCustomer!.fullname,
+                          'email': _currentCustomer!.email,
+                          'phone': _currentCustomer!.phone,
+                        });
+                      }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const ServicePage()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    label: const Text(
+                      'New Booking',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         ),

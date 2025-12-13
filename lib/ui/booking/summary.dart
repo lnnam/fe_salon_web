@@ -298,188 +298,226 @@ class _SummaryPageState extends State<SummaryPage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            _buildInfoRow(
-              context,
-              label: 'Schedule',
-              value:
-                  '${_formatDate(bookingDate)} at ${_formatTime(bookingTime)}',
-              icon: Icons.schedule,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          BookingCalendarPage(booking: widget.booking)),
-                ).then((_) {
-                  // Refresh booking time from BookingProvider when returning from CalendarPage
-                  setState(() {
-                    final provider =
-                        Provider.of<BookingProvider>(context, listen: false);
-                    final schedule = provider.onbooking.schedule;
-                    print(
-                        '📅 After Calendar - schedule from provider: $schedule');
-                    if (schedule != null && schedule['bookingStart'] != null) {
-                      try {
-                        DateTime dateTime =
-                            DateTime.parse(schedule['bookingStart']);
-                        bookingDate = DateFormat('yyyy-MM-dd').format(dateTime);
-                        bookingTime =
-                            DateFormat('HH:mm, dd/MM/yyyy').format(dateTime);
-                        print(
-                            '✓ Schedule refreshed: $bookingDate at $bookingTime');
-                      } catch (e) {
-                        print('❌ Error parsing schedule: $e');
-                      }
-                    } else {
-                      print('⚠️ schedule is null or bookingStart is missing');
-                    }
-                  });
-                });
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              context,
-              label: 'Staff',
-              value: staffName,
-              icon: Icons.people,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const StaffPage()),
-                ).then((_) {
-                  // Refresh staff data from BookingProvider when returning from StaffPage
-                  setState(() {
-                    final provider =
-                        Provider.of<BookingProvider>(context, listen: false);
-                    final updatedStaff = provider.onbooking.staff;
-                    if (updatedStaff != null && updatedStaff.isNotEmpty) {
-                      // Provider stores 'fullname', not 'staffname'
-                      staffName = updatedStaff['fullname'] ?? staffName;
-                      staffKey =
-                          (updatedStaff['staffkey'] ?? staffKey).toString();
-                      print('✓ Staff refreshed: $staffName (key: $staffKey)');
-                    }
-                  });
-                });
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              context,
-              label: 'Service',
-              value: serviceName,
-              icon: Icons.star,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ServicePage()),
-                ).then((_) {
-                  // Refresh service data from BookingProvider when returning from ServicePage
-                  setState(() {
-                    final provider =
-                        Provider.of<BookingProvider>(context, listen: false);
-                    final updatedService = provider.onbooking.service;
-                    if (updatedService != null && updatedService.isNotEmpty) {
-                      // Provider stores 'name', not 'servicename'
-                      serviceName = updatedService['name'] ?? serviceName;
-                      final key = updatedService['servicekey'];
-                      serviceKey = (key is String) ? key : key.toString();
-                      print(
-                          '✓ Service refreshed: $serviceName (key: $serviceKey)');
-                    }
-                  });
-                });
-              },
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Note:',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: noteController,
-              decoration: const InputDecoration(
-                hintText: 'Enter any notes here...',
-                border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(COLOR_PRIMARY), width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey, width: 1),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/bg.jpg'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              color: Colors.white,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 700),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ListView(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildInfoRow(
+                        context,
+                        label: 'Schedule',
+                        value:
+                            '${_formatDate(bookingDate)} at ${_formatTime(bookingTime)}',
+                        icon: Icons.schedule,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => BookingCalendarPage(
+                                    booking: widget.booking)),
+                          ).then((_) {
+                            // Refresh booking time from BookingProvider when returning from CalendarPage
+                            setState(() {
+                              final provider = Provider.of<BookingProvider>(
+                                  context,
+                                  listen: false);
+                              final schedule = provider.onbooking.schedule;
+                              print(
+                                  '📅 After Calendar - schedule from provider: $schedule');
+                              if (schedule != null &&
+                                  schedule['bookingStart'] != null) {
+                                try {
+                                  DateTime dateTime =
+                                      DateTime.parse(schedule['bookingStart']);
+                                  bookingDate =
+                                      DateFormat('yyyy-MM-dd').format(dateTime);
+                                  bookingTime = DateFormat('HH:mm, dd/MM/yyyy')
+                                      .format(dateTime);
+                                  print(
+                                      '✓ Schedule refreshed: $bookingDate at $bookingTime');
+                                } catch (e) {
+                                  print('❌ Error parsing schedule: $e');
+                                }
+                              } else {
+                                print(
+                                    '⚠️ schedule is null or bookingStart is missing');
+                              }
+                            });
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _buildInfoRow(
+                        context,
+                        label: 'Staff',
+                        value: staffName,
+                        icon: Icons.people,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const StaffPage()),
+                          ).then((_) {
+                            // Refresh staff data from BookingProvider when returning from StaffPage
+                            setState(() {
+                              final provider = Provider.of<BookingProvider>(
+                                  context,
+                                  listen: false);
+                              final updatedStaff = provider.onbooking.staff;
+                              if (updatedStaff != null &&
+                                  updatedStaff.isNotEmpty) {
+                                // Provider stores 'fullname', not 'staffname'
+                                staffName =
+                                    updatedStaff['fullname'] ?? staffName;
+                                staffKey =
+                                    (updatedStaff['staffkey'] ?? staffKey)
+                                        .toString();
+                                print(
+                                    '✓ Staff refreshed: $staffName (key: $staffKey)');
+                              }
+                            });
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _buildInfoRow(
+                        context,
+                        label: 'Service',
+                        value: serviceName,
+                        icon: Icons.star,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ServicePage()),
+                          ).then((_) {
+                            // Refresh service data from BookingProvider when returning from ServicePage
+                            setState(() {
+                              final provider = Provider.of<BookingProvider>(
+                                  context,
+                                  listen: false);
+                              final updatedService = provider.onbooking.service;
+                              if (updatedService != null &&
+                                  updatedService.isNotEmpty) {
+                                // Provider stores 'name', not 'servicename'
+                                serviceName =
+                                    updatedService['name'] ?? serviceName;
+                                final key = updatedService['servicekey'];
+                                serviceKey =
+                                    (key is String) ? key : key.toString();
+                                print(
+                                    '✓ Service refreshed: $serviceName (key: $serviceKey)');
+                              }
+                            });
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Note:',
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: noteController,
+                        decoration: const InputDecoration(
+                          hintText: 'Enter any notes here...',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Color(COLOR_PRIMARY), width: 2),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide:
+                                BorderSide(color: Colors.grey, width: 1),
+                          ),
+                        ),
+                        maxLines: 3,
+                        onChanged: (value) {
+                          note = value;
+                          Provider.of<BookingProvider>(context, listen: false)
+                              .setNote(value);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Column(
+                        children: [
+                          ElevatedButton(
+                            onPressed: isLoading
+                                ? null
+                                : () {
+                                    print('=== SUMMARY PAGE - BEFORE SAVE ===');
+                                    print('customerKey: $customerKey');
+                                    print('customerEmail: $customerEmail');
+                                    print('customerPhone: $customerPhone');
+                                    print('serviceKey: $serviceKey');
+                                    print('staffKey: $staffKey');
+                                    print('================================');
+
+                                    saveBooking(
+                                      context,
+                                      bookingkey,
+                                      (bool val) => setState(() => isLoading =
+                                          val), // <-- Accepts a bool
+                                      customerKey,
+                                      serviceKey,
+                                      staffKey,
+                                      bookingDate,
+                                      bookingTime,
+                                      note,
+                                      customerName,
+                                      staffName,
+                                      serviceName,
+                                      customerEmail,
+                                      customerPhone,
+                                    );
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(COLOR_PRIMARY),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 14),
+                            ),
+                            child: isLoading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white)
+                                : const Text(
+                                    'Save Booking',
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              maxLines: 3,
-              onChanged: (value) {
-                note = value;
-                Provider.of<BookingProvider>(context, listen: false)
-                    .setNote(value);
-              },
             ),
-            const SizedBox(height: 16),
-            Column(
-              children: [
-                ElevatedButton(
-                  onPressed: isLoading
-                      ? null
-                      : () {
-                          print('=== SUMMARY PAGE - BEFORE SAVE ===');
-                          print('customerKey: $customerKey');
-                          print('customerEmail: $customerEmail');
-                          print('customerPhone: $customerPhone');
-                          print('serviceKey: $serviceKey');
-                          print('staffKey: $staffKey');
-                          print('================================');
-
-                          saveBooking(
-                            context,
-                            bookingkey,
-                            (bool val) => setState(
-                                () => isLoading = val), // <-- Accepts a bool
-                            customerKey,
-                            serviceKey,
-                            staffKey,
-                            bookingDate,
-                            bookingTime,
-                            note,
-                            customerName,
-                            staffName,
-                            serviceName,
-                            customerEmail,
-                            customerPhone,
-                          );
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(COLOR_PRIMARY),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 14),
-                  ),
-                  child: isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Save Booking',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
-                        ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );

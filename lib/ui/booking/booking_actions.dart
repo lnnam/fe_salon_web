@@ -6,6 +6,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'home.dart';
 import 'package:salonappweb/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 
 Future<void> saveBooking(
@@ -81,7 +82,7 @@ Future<void> saveBooking(
       appLog('Could not JSON-encode SaveBooking result: $e');
     }
 
-   /*  // Send booking confirmation email
+    /*  // Send booking confirmation email
     if (customerEmail.isNotEmpty) {
       print('=== SENDING CONFIRMATION EMAIL ===');
       final emailSent = await apiManager.sendBookingConfirmationEmail(
@@ -188,81 +189,110 @@ Future<void> saveBooking(
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           insetPadding:
-              const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: statusColor.withOpacity(0.12),
-                      ),
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(Icons.check_circle_outline,
-                          color: statusColor, size: 28),
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          backgroundColor: Colors.white,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: statusColor.withOpacity(0.12),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        dialogTitle,
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black87),
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.check_circle_outline,
+                      color: statusColor,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      dialogTitle,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  dialogMessage,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[800]),
-                ),
-                const SizedBox(height: 12),
-                if (result.bookingkey != 0) ...[
-                  Text('Booking ref: ${result.bookingkey}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                  const SizedBox(height: 6),
+                  ),
                 ],
-                // Token intentionally not shown in UI for privacy/security
-                // Buttons
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: statusColor,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                dialogMessage,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (result.bookingkey != 0) ...[
+                Text(
+                  'Booking ref: ${result.bookingkey}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: statusColor,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    onPressed: () {
-                      print('=== NAVIGATING BACK TO HOME ===');
-                      print(
-                          'MyAppState.customerProfile before navigation: ${MyAppState.customerProfile}');
-                      Navigator.of(context).pop(); // Close dialog
+                  ),
+                  onPressed: () async {
+                    print('=== REDIRECTING TO HOME PAGE ===');
+                    print(
+                        'MyAppState.customerProfile before navigation: ${MyAppState.customerProfile}');
+                    Navigator.of(context).pop(); // Close dialog
+
+                    // Launch external URL
+                    final Uri url =
+                        Uri.parse('https://greatyarmouthnails.com/');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url,
+                          mode: LaunchMode.externalApplication);
+                    } else {
+                      print('Could not launch URL');
+                      // Fallback to home screen if URL launch fails
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const CustomerHomeScreen()),
+                          builder: (context) => const CustomerHomeScreen(),
+                        ),
                         (route) => false,
                       );
-                    },
-                    child: const Text('OK',
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w700)),
+                    }
+                  },
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
