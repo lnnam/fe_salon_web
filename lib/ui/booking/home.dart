@@ -396,11 +396,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 ),
               ),
             ),
-            // ...existing code...
           ],
         ),
       ),
-      // Removed floatingActionButton; using right-side button instead
     );
   }
 
@@ -545,10 +543,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).push(
+                  final bookingProvider =
+                      Provider.of<BookingProvider>(context, listen: false);
+                  bookingProvider.resetBooking();
+                  bookingProvider.setEditMode(false);
+                  if (_currentCustomer != null) {
+                    bookingProvider.setCustomerDetails({
+                      'pkey': _currentCustomer!.customerkey,
+                      'customerkey': _currentCustomer!.customerkey,
+                      'fullname': _currentCustomer!.fullname,
+                      'email': _currentCustomer!.email,
+                      'phone': _currentCustomer!.phone,
+                    });
+                  }
+                  Navigator.push(
+                    context,
                     MaterialPageRoute(
-                      builder: (context) => const ServicePage(),
-                    ),
+                        builder: (context) => const ServicePage()),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -604,129 +615,126 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   }
 
   Widget _buildBookingsSection(BuildContext context, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'My Appointments',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: color,
+    return Container(
+      padding: const EdgeInsets.all(0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'My Appointments',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        FutureBuilder<List<Booking>>(
-          future: _bookingsFuture,
-          builder: (context, snapshot) {
-            Widget bookingListWidget;
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              bookingListWidget = const Padding(
-                padding: EdgeInsets.all(32.0),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            } else if (snapshot.hasError) {
-              bookingListWidget = Padding(
-                padding: const EdgeInsets.all(10.0),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Text(
-                        'Error: ${snapshot.error}',
-                        style: const TextStyle(color: Colors.red),
+          const SizedBox(height: 16),
+          // Make the bookings list scrollable and the button fixed below
+          SizedBox(
+            height: 350, // Adjust height as needed
+            child: FutureBuilder<List<Booking>>(
+              future: _bookingsFuture,
+              builder: (context, snapshot) {
+                Widget bookingListWidget;
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  bookingListWidget = const Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                } else if (snapshot.hasError) {
+                  bookingListWidget = Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            'Error: \u001b[${snapshot.error}',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _bookingsFuture =
+                                    apiManager.ListBookingsSmart();
+                              });
+                            },
+                            child: const Text('Retry'),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            _bookingsFuture = apiManager.ListBookingsSmart();
-                          });
-                        },
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              bookingListWidget = _buildEmptyState();
-            } else {
-              List<Booking> customerBookings;
-              final needsFiltering =
-                  snapshot.data!.any((b) => b.customerkey != 'Unknown');
-              if (needsFiltering && _currentCustomer != null) {
-                customerBookings = snapshot.data!.where((booking) {
-                  final match = booking.customerkey ==
-                      _currentCustomer!.customerkey.toString();
-                  return match;
-                }).toList();
-              } else {
-                customerBookings = snapshot.data!;
-              }
-              if (customerBookings.isEmpty) {
-                bookingListWidget = _buildEmptyState();
-              } else {
-                customerBookings.sort((a, b) {
-                  final dateA = DateTime.parse(a.bookingdate);
-                  final dateB = DateTime.parse(b.bookingdate);
-                  return dateA.compareTo(dateB);
-                });
-                bookingListWidget = Column(
-                  children: customerBookings.map((booking) {
-                    return _buildBookingCard(booking, color, context);
-                  }).toList(),
+                    ),
+                  );
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  bookingListWidget = _buildEmptyState();
+                } else {
+                  List<Booking> customerBookings;
+                  final needsFiltering =
+                      snapshot.data!.any((b) => b.customerkey != 'Unknown');
+                  if (needsFiltering && _currentCustomer != null) {
+                    customerBookings = snapshot.data!.where((booking) {
+                      final match = booking.customerkey ==
+                          _currentCustomer!.customerkey.toString();
+                      return match;
+                    }).toList();
+                  } else {
+                    customerBookings = snapshot.data!;
+                  }
+                  if (customerBookings.isEmpty) {
+                    bookingListWidget = _buildEmptyState();
+                  } else {
+                    customerBookings.sort((a, b) {
+                      final dateA = DateTime.parse(a.bookingdate);
+                      final dateB = DateTime.parse(b.bookingdate);
+                      return dateA.compareTo(dateB);
+                    });
+                    bookingListWidget = ListView(
+                      children: customerBookings.map((booking) {
+                        return _buildBookingCard(booking, color, context);
+                      }).toList(),
+                    );
+                  }
+                }
+                return bookingListWidget;
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton(
+              onPressed: () {
+                final bookingProvider =
+                    Provider.of<BookingProvider>(context, listen: false);
+                bookingProvider.resetBooking();
+                bookingProvider.setEditMode(false);
+                if (_currentCustomer != null) {
+                  bookingProvider.setCustomerDetails({
+                    'pkey': _currentCustomer!.customerkey,
+                    'customerkey': _currentCustomer!.customerkey,
+                    'fullname': _currentCustomer!.fullname,
+                    'email': _currentCustomer!.email,
+                    'phone': _currentCustomer!.phone,
+                  });
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ServicePage()),
                 );
-              }
-            }
-            // Add the New Booking button inside the white card, below the list
-            return Column(
-              children: [
-                bookingListWidget,
-                const SizedBox(height: 24),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      final bookingProvider =
-                          Provider.of<BookingProvider>(context, listen: false);
-                      bookingProvider.resetBooking();
-                      bookingProvider.setEditMode(false);
-                      if (_currentCustomer != null) {
-                        bookingProvider.setCustomerDetails({
-                          'pkey': _currentCustomer!.customerkey,
-                          'customerkey': _currentCustomer!.customerkey,
-                          'fullname': _currentCustomer!.fullname,
-                          'email': _currentCustomer!.email,
-                          'phone': _currentCustomer!.phone,
-                        });
-                      }
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const ServicePage()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: color,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    label: const Text(
-                      'New Booking',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w600),
-                    ),
-                  ),
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              ],
-            );
-          },
-        ),
-      ],
+              ),
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
