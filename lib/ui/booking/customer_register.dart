@@ -54,56 +54,83 @@ class _CustomerRegisterPageState extends State<CustomerRegisterPage> {
             fit: BoxFit.cover,
           ),
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Center(
-            child: ConstrainedBox(
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 32.0),
               constraints: const BoxConstraints(maxWidth: 600),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.95),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 32),
                   const Text(
                     'Create your member account to book appointments and manage your profile.',
                     style: TextStyle(fontSize: 14, color: Colors.grey),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Full Name *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.person),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: emailController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Email *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.email),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.email),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
                     ),
                     keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: phoneController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Phone Number *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.phone),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.phone),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
                     ),
                     keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: dobController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Date of Birth (YYYY-MM-DD)',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.cake),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.cake),
                       hintText: '1990-01-01',
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
                     ),
                     keyboardType: TextInputType.datetime,
                     onTap: () async {
@@ -136,8 +163,12 @@ class _CustomerRegisterPageState extends State<CustomerRegisterPage> {
                     obscureText: obscurePassword,
                     decoration: InputDecoration(
                       labelText: 'Password *',
-                      border: const OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       prefixIcon: const Icon(Icons.lock),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
                       suffixIcon: IconButton(
                         icon: Icon(obscurePassword
                             ? Icons.visibility_off
@@ -156,8 +187,12 @@ class _CustomerRegisterPageState extends State<CustomerRegisterPage> {
                     obscureText: obscureConfirmPassword,
                     decoration: InputDecoration(
                       labelText: 'Confirm Password *',
-                      border: const OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       prefixIcon: const Icon(Icons.lock_outline),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
                       suffixIcon: IconButton(
                         icon: Icon(obscureConfirmPassword
                             ? Icons.visibility_off
@@ -218,7 +253,7 @@ class _CustomerRegisterPageState extends State<CustomerRegisterPage> {
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white)),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
