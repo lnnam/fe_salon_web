@@ -392,7 +392,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
                         // ✅ Start from the current day
                         startingDayOfWeek: StartingDayOfWeek.monday,
                         wholeDayIsBookedWidget: const Text(
-                          'Salon is closed on this day',
+                          'No time slot available, try to change different staff or day',
                           style: TextStyle(
                             color: Colors.red,
                             fontWeight: FontWeight.bold,
