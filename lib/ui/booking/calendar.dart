@@ -255,6 +255,9 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
       serviceDuration: 45,
     );
 
+    // Print first and last time slots
+    printFirstAndLastTimeSlot(response);
+
     //print('fetchAvailability result: $response'); // Debug print
 
     final List<DateTimeRange> busySlots = [];
@@ -283,6 +286,23 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
     }
 
     yield busySlots;
+  }
+
+  void printFirstAndLastTimeSlot(dynamic response) {
+    if (response is List && response.isNotEmpty) {
+      // Get first slot
+      final firstSlot = response.first;
+      final firstTimeSlot = firstSlot is Map ? firstSlot['slot_time'] : 'N/A';
+
+      // Get last slot
+      final lastSlot = response.last;
+      final lastTimeSlot = lastSlot is Map ? lastSlot['slot_time'] : 'N/A';
+
+      print('🕐 First time slot: $firstTimeSlot');
+      print('🕐 Last time slot: $lastTimeSlot');
+    } else {
+      print('⚠️ No slots available in response');
+    }
   }
 
   List<DateTimeRange> generatePauseSlots() {
