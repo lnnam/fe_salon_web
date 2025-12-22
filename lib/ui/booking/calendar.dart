@@ -19,13 +19,29 @@ class BookingCalendarPage extends StatefulWidget {
 
 class _BookingCalendarPageState extends State<BookingCalendarPage> {
   late BookingService mockBookingService;
+  bool isSettingsLoaded = false;
   final now = DateTime.now();
   List<DateTimeRange> converted = [];
   List<int> disabledDays = [];
   List<DateTime> disabledDates = [];
+  int time_open = 9;
+  int time_close = 18;
 
   @override
   void initState() {
+    super.initState();
+    print(time_close);
+    mockBookingService = BookingService(
+        serviceName: 'Mock Service',
+        serviceDuration: 15,
+        bookingEnd: DateTime(now.year, now.month, now.day, time_close, 0),
+        bookingStart: DateTime(now.year, now.month, now.day, time_open, 0));
+
+    // Fetch booking settings from backend
+    _fetchBookingSettings();
+  }
+
+  /* void initState() {
     super.initState();
     mockBookingService = BookingService(
         serviceName: 'Mock Service',
@@ -35,7 +51,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
 
     // Fetch booking settings from backend
     _fetchBookingSettings();
-  }
+  } */
 
   Future<void> _fetchBookingSettings() async {
     try {
@@ -62,8 +78,42 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
           } else {
             disabledDays = [];
           }
-
-          // Parse listoffday (dayoff dates) if it exists
+          if (settingsData != null && settingsData['time_open'] != null) {
+            try {
+              // Parse 'hh.mm.ss' format and extract hour
+              final timeOpenStr = settingsData['time_open'].toString();
+              final parts = timeOpenStr.split(':');
+              if (parts.isNotEmpty) {
+                time_open = int.parse(parts[0]);
+              } else {
+                time_open = 9; // default
+              }
+            } catch (e) {
+              time_open = 9; // default
+            }
+          }
+          if (settingsData != null && settingsData['time_close'] != null) {
+            try {
+              // Parse 'hh.mm.ss' format and extract hour
+              final timeCloseStr = settingsData['time_close'].toString();
+              final parts = timeCloseStr.split(':');
+              if (parts.isNotEmpty) {
+                time_close = int.parse(parts[0]);
+              } else {
+                time_close = 18; // default
+              }
+            } catch (e) {
+              time_close = 18; // default
+            }
+          }
+          // Update mockBookingService with new time_open and time_close
+          mockBookingService = BookingService(
+            serviceName: 'Mock Service',
+            serviceDuration: 15,
+            bookingEnd: DateTime(now.year, now.month, now.day, time_close, 0),
+            bookingStart: DateTime(now.year, now.month, now.day, time_open, 0),
+          );
+          isSettingsLoaded = true;
           disabledDates = [];
           if (settingsData != null && settingsData['listoffday'] != null) {
             try {
@@ -316,119 +366,116 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
       appBar: AppBar(
         title: const Text('Booking Calendar',
             style: TextStyle(color: Colors.white)),
-        backgroundColor: color, // Set app bar color
+        backgroundColor: color,
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/bg.jpg'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Center(
-          child: Container(
-            color: Colors.white,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 700),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Builder(builder: (context) {
-                    const int crossAxisCount = 4;
-                    final bool compact = crossAxisCount >= 4;
-                    return SizedBox(
-                      height: 700,
-                      child: BookingCalendar(
-                        bookingService: mockBookingService,
-                        bookingExplanation: const SizedBox.shrink(),
-                        bookingGridCrossAxisCount: crossAxisCount,
-                        bookingGridChildAspectRatio: compact ? 1.2 : 1.5,
-                        // When compact (many columns) hide the time text by using
-                        // a zero-size text style to avoid clipped text.
-                        // Use a smaller readable font in compact mode instead of hiding text
-                        availableSlotTextStyle: compact
-                            ? const TextStyle(fontSize: 12, height: 1)
-                            : const TextStyle(fontSize: 14),
-                        selectedSlotTextStyle: compact
-                            ? const TextStyle(fontSize: 12, height: 1)
-                            : const TextStyle(fontSize: 14),
-                        bookedSlotTextStyle: compact
-                            ? const TextStyle(fontSize: 12, height: 1)
-                            : const TextStyle(fontSize: 14),
-                        convertStreamResultToDateTimeRanges: (
-                                {required dynamic streamResult}) =>
-                            streamResult as List<DateTimeRange>,
-                        getBookingStream: (
-                                {required DateTime start,
-                                required DateTime end}) =>
-                            getBookingStreamFromServer(start: start, end: end),
-                        // convertStreamResultToDateTimeRanges: convertStreamResultMock,
-                        // getBookingStream: getBookingStreamMock,
-                        uploadBooking: uploadBookingMock,
-                        pauseSlots: generatePauseSlots(),
-                        pauseSlotText: 'Disabled',
-                        hideBreakTime: false,
-                        loadingWidget: const Text('Fetching data...'),
-                        uploadingWidget: Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: color.withOpacity(0.95),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                const Text(
-                                  'Booking…',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        locale: 'en_GB',
-                        // ✅ Start from the current day
-                        startingDayOfWeek: StartingDayOfWeek.monday,
-                        wholeDayIsBookedWidget: const Text(
-                          'No time slot available, try to change different staff or day',
-                          style: TextStyle(
-                            color: Colors.red,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        //disabledDates: [DateTime(2023, 1, 20)],
-                      ),
-                    );
-                  }),
+      body: isSettingsLoaded
+          ? Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/bg.jpg'),
+                  fit: BoxFit.cover,
                 ),
               ),
-            ),
-          ),
-        ),
-      ),
+              child: Center(
+                child: Container(
+                  color: Colors.white,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 700),
+                    child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Builder(builder: (context) {
+                          const int crossAxisCount = 4;
+                          final bool compact = crossAxisCount >= 4;
+                          return SizedBox(
+                            height: 700,
+                            child: BookingCalendar(
+                              bookingService: mockBookingService,
+                              bookingExplanation: const SizedBox.shrink(),
+                              bookingGridCrossAxisCount: crossAxisCount,
+                              bookingGridChildAspectRatio: compact ? 1.2 : 1.5,
+                              availableSlotTextStyle: compact
+                                  ? const TextStyle(fontSize: 12, height: 1)
+                                  : const TextStyle(fontSize: 14),
+                              selectedSlotTextStyle: compact
+                                  ? const TextStyle(fontSize: 12, height: 1)
+                                  : const TextStyle(fontSize: 14),
+                              bookedSlotTextStyle: compact
+                                  ? const TextStyle(fontSize: 12, height: 1)
+                                  : const TextStyle(fontSize: 14),
+                              convertStreamResultToDateTimeRanges: (
+                                      {required dynamic streamResult}) =>
+                                  streamResult as List<DateTimeRange>,
+                              getBookingStream: (
+                                      {required DateTime start,
+                                      required DateTime end}) =>
+                                  getBookingStreamFromServer(
+                                      start: start, end: end),
+                              uploadBooking: uploadBookingMock,
+                              pauseSlots: generatePauseSlots(),
+                              pauseSlotText: 'Disabled',
+                              hideBreakTime: false,
+                              loadingWidget: const Text('Fetching data...'),
+                              uploadingWidget: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: color.withOpacity(0.95),
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        'Booking…',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              locale: 'en_GB',
+                              startingDayOfWeek: StartingDayOfWeek.monday,
+                              wholeDayIsBookedWidget: const Text(
+                                'No time slot available, try to change different staff or day',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : const Center(child: CircularProgressIndicator()),
     );
   }
 }
