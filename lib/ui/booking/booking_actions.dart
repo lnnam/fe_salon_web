@@ -82,24 +82,6 @@ Future<void> saveBooking(
       appLog('Could not JSON-encode SaveBooking result: $e');
     }
 
-    /*  // Send booking confirmation email
-    if (customerEmail.isNotEmpty) {
-      print('=== SENDING CONFIRMATION EMAIL ===');
-      final emailSent = await apiManager.sendBookingConfirmationEmail(
-        bookingKey: result.bookingkey.toString(),
-        customerEmail: customerEmail,
-        customerName: customerName,
-      );
-
-      if (emailSent) {
-        print('✓ Booking confirmation email sent to $customerEmail');
-      } else {
-        print('✗ Failed to send booking confirmation email');
-      }
-    } else {
-      print('⚠ No customer email provided, skipping confirmation email');
-    } */
-
     // Fetch and cache customer profile
     final prefs = await SharedPreferences.getInstance();
     final profile = await apiManager.fetchCustomerProfile();
@@ -262,25 +244,27 @@ Future<void> saveBooking(
                   onPressed: () async {
                     print('=== REDIRECTING TO HOME PAGE ===');
                     print(
-                        'MyAppState.customerProfile before navigation: ${MyAppState.customerProfile}');
+                        'MyAppState.customerProfile before navigation: \\${MyAppState.customerProfile}');
                     Navigator.of(context).pop(); // Close dialog
-
-                    // Launch external URL
+                    // Navigate to home
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CustomerHomeScreen(),
+                      ),
+                      (route) => false,
+                    );
+                    // Open URL in new tab (web only)
                     final Uri url =
-                        Uri.parse('https://greatyarmouthnails.com/');
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url,
-                          mode: LaunchMode.externalApplication);
-                    } else {
-                      print('Could not launch URL');
-                      // Fallback to home screen if URL launch fails
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CustomerHomeScreen(),
-                        ),
-                        (route) => false,
+                        Uri.parse('https://g.page/r/CbU-bofIjzfWEAg/review');
+                    try {
+                      await launchUrl(
+                        url,
+                        webOnlyWindowName: '_blank',
+                        mode: LaunchMode.platformDefault,
                       );
+                    } catch (e) {
+                      print('Could not launch URL: $e');
                     }
                   },
                   child: const Text(
