@@ -141,35 +141,10 @@ Future<void> saveBooking(
 
     setLoading(false);
 
-    final dialogMessage = (result.message.isNotEmpty)
-        ? result.message
-        : 'Booking Saved Successfully';
-
-    final dialogTitle = (result.status.isNotEmpty) ? result.status : 'Success';
-
-    // Map status to color for the dialog accent
-    Color statusColor;
-    final lower = result.status.toLowerCase();
-    if (lower.contains('pending')) {
-      statusColor = Colors.red;
-    } else if (lower.contains('confirm') || lower.contains('confirmed')) {
-      statusColor = Colors.green[700]!;
-    } else if (lower.contains('cancel')) {
-      statusColor = Colors.red;
-    } else if (lower.contains('complete') ||
-        lower == 'completed' ||
-        lower == 'done') {
-      statusColor = Colors.grey;
-    } else if (lower.contains('upcom') || lower == 'upcoming') {
-      statusColor = Colors.green[700]!;
-    } else if (result.status.isEmpty) {
-      statusColor = Colors.green[700]!;
-    } else {
-      statusColor = Colors.blueGrey;
-    }
-
-    showDialog(
+    // Show review invitation popup
+    await showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
@@ -179,100 +154,100 @@ Future<void> saveBooking(
               const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
           backgroundColor: Colors.white,
+          title: Row(
+            children: [
+              Icon(Icons.reviews, color: Colors.amber[800], size: 28),
+              const SizedBox(width: 10),
+              const Text('Enjoyed your visit?'),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text(
+                'Would you like to leave us a review? Your feedback helps us improve and grow!',
+                style: TextStyle(fontSize: 15, color: Colors.black87),
+              ),
+              const SizedBox(height: 18),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: statusColor.withOpacity(0.12),
+                  ElevatedButton.icon(
+                    icon: Image.asset(
+                      'assets/icons/google_logo.png',
+                      width: 22,
+                      height: 22,
                     ),
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      Icons.check_circle_outline,
-                      color: statusColor,
-                      size: 26,
+                    label: const Text('Google'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      elevation: 1,
+                      side: const BorderSide(color: Colors.grey),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
                     ),
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                      final Uri url =
+                          Uri.parse('https://g.page/r/CbU-bofIjzfWEAg/review');
+                      try {
+                        await launchUrl(
+                          url,
+                          webOnlyWindowName: '_blank',
+                          mode: LaunchMode.platformDefault,
+                        );
+                      } catch (e) {
+                        print('Could not launch Google review: $e');
+                      }
+                    },
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      dialogTitle,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
+                  ElevatedButton.icon(
+                    icon: Image.asset(
+                      'assets/icons/facebook_logo.png',
+                      width: 22,
+                      height: 22,
                     ),
+                    label: const Text('Facebook'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF1877F3),
+                      foregroundColor: Colors.white,
+                      elevation: 1,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                      final Uri url = Uri.parse(
+                          'https://www.facebook.com/greatyarmouthnails');
+                      try {
+                        await launchUrl(
+                          url,
+                          webOnlyWindowName: '_blank',
+                          mode: LaunchMode.platformDefault,
+                        );
+                      } catch (e) {
+                        print('Could not launch Facebook review: $e');
+                      }
+                    },
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                dialogMessage,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 10),
-              if (result.bookingkey != 0) ...[
-                Text(
-                  'Booking ref: ${result.bookingkey}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black54,
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: statusColor,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () async {
-                    print('=== REDIRECTING TO HOME PAGE ===');
-                    print(
-                        'MyAppState.customerProfile before navigation: \\${MyAppState.customerProfile}');
-                    Navigator.of(context).pop(); // Close dialog
-                    // Navigate to home
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CustomerHomeScreen(),
-                      ),
-                      (route) => false,
-                    );
-                    // Open URL in new tab (web only)
-                    final Uri url =
-                        Uri.parse('https://g.page/r/CbU-bofIjzfWEAg/review');
-                    try {
-                      await launchUrl(
-                        url,
-                        webOnlyWindowName: '_blank',
-                        mode: LaunchMode.platformDefault,
-                      );
-                    } catch (e) {
-                      print('Could not launch URL: $e');
-                    }
+              const SizedBox(height: 18),
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
                   },
                   child: const Text(
-                    'OK',
+                    'I’ll do it later.',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
+                        fontSize: 15,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -281,71 +256,16 @@ Future<void> saveBooking(
         );
       },
     );
-  } else {
-    appLog('SaveBooking returned null (save failed)');
-    setLoading(false);
-    showAlertDialog(
+
+    // After dialog is closed, navigate to home
+    Navigator.pushAndRemoveUntil(
       context,
-      'Error : '.tr(),
-      'Booking not saved. Contact support!'.tr(),
+      MaterialPageRoute(
+        builder: (context) => const CustomerHomeScreen(),
+      ),
+      (route) => false,
     );
-  }
-}
 
-Future<void> deleteBookingAction(
-  BuildContext context,
-  bool isLoading,
-  Function(bool) setLoading,
-  dynamic booking, // Pass widget.booking here
-) async {
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Cancel Booking'),
-      content: const Text('Are you sure you want to cancel this booking?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('No'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Yes', style: TextStyle(color: Colors.red)),
-        ),
-      ],
-    ),
-  );
-
-  if (confirm == true) {
-    setLoading(true);
-
-    bool success = true;
-    if (booking != null) {
-      success = await apiManager.deleteBooking(booking.pkey);
-    }
-
-    setLoading(false);
-
-    if (success) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const CustomerHomeScreen()),
-        (route) => false,
-      );
-    } else {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Error'),
-          content: const Text('Failed to cancel booking. Please try again.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-    }
+    // End of saveBooking
   }
 }
