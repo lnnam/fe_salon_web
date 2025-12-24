@@ -362,10 +362,15 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
   @override
   Widget build(BuildContext context) {
     const color = Color(COLOR_PRIMARY);
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final EdgeInsetsGeometry zeroPadding = EdgeInsets.zero;
+    final EdgeInsetsGeometry defaultPadding = const EdgeInsets.all(16.0);
+    final EdgeInsetsGeometry padding = isMobile ? zeroPadding : defaultPadding;
+    final EdgeInsetsGeometry margin = isMobile ? EdgeInsets.zero : EdgeInsets.zero;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Booking Calendar',
-            style: TextStyle(color: Colors.white)),
+        title: const Text('Booking Calendar', style: TextStyle(color: Colors.white)),
         backgroundColor: color,
       ),
       body: isSettingsLoaded
@@ -379,11 +384,12 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
               child: Center(
                 child: Container(
                   color: Colors.white,
+                  margin: margin,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 700),
                     child: SafeArea(
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: padding,
                         child: Builder(builder: (context) {
                           const int crossAxisCount = 4;
                           final bool compact = crossAxisCount >= 4;
