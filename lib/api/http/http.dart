@@ -155,6 +155,7 @@ class MyHttp {
     String serviceName,
     String customerEmail,
     String customerPhone,
+    int numbooking,
   ) async {
     //  print('url test: ${AppConfig.api_url_booking_add}');
     try {
@@ -171,6 +172,7 @@ class MyHttp {
         'servicename': serviceName,
         'customeremail': customerEmail,
         'customerphone': customerPhone,
+        'numbooking': numbooking.toString(),
         'userkey': '1',
       };
 
@@ -628,18 +630,13 @@ class MyHttp {
 
       if (response.statusCode == 200) {
         final dynamic data = jsonDecode(response.body);
-        print('===== FETCH AVAILABILITY DATA =====');
-        print('Raw API response: $data');
-        print('Response type: ${data.runtimeType}');
 
         // If the response is a List, return as before
         if (data is List) {
-          print('Response is List with ${data.length} items');
           final result = data
               .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
               .toList();
-     //     print('Final slots data: ${jsonEncode(result)}');
-          print('====================================');
+          //     print('Final slots data: ${jsonEncode(result)}');
           return result;
         }
 
@@ -649,19 +646,15 @@ class MyHttp {
           print('Response is Map with slots key');
           print('Slots type: ${slotsData.runtimeType}');
           if (slotsData is List) {
-            print('Slots is List with ${slotsData.length} items');
             final result = slotsData
                 .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
                 .toList();
-         //   print('Final slots data: ${jsonEncode(result)}');
-            print('====================================');
+            //   print('Final slots data: ${jsonEncode(result)}');
             return result;
           }
         }
 
         // fallback
-        print('No valid slots found - returning empty list');
-        print('====================================');
         return [];
       } else {
         return [];

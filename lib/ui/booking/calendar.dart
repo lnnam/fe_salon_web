@@ -26,6 +26,30 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
   List<DateTime> disabledDates = [];
   int time_open = 9;
   int time_close = 18;
+  int bookingLeadTimeMinutes = 0;
+
+  int _parseLeadTimeMinutes(dynamic rawValue) {
+    if (rawValue == null) return 0;
+
+    if (rawValue is num) {
+      return rawValue.toInt() < 0 ? 0 : rawValue.toInt();
+    }
+
+    final value = rawValue.toString().trim();
+    if (value.isEmpty) return 0;
+
+    // Support formats like "60" or "01:00" or "01:00:00".
+    if (value.contains(':')) {
+      final parts = value.split(':');
+      final hours = int.tryParse(parts[0]) ?? 0;
+      final minutes = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      final total = (hours * 60) + minutes;
+      return total < 0 ? 0 : total;
+    }
+
+    final asInt = int.tryParse(value) ?? 0;
+    return asInt < 0 ? 0 : asInt;
+  }
 
   @override
   void initState() {
@@ -106,6 +130,13 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
               time_close = 18; // default
             }
           }
+
+          if (settingsData != null) {
+            bookingLeadTimeMinutes =
+                _parseLeadTimeMinutes(settingsData['booking_lead_time']);
+            print('booking_lead_time (minutes): $bookingLeadTimeMinutes');
+          }
+
           // Update mockBookingService with new time_open and time_close
           mockBookingService = BookingService(
             serviceName: 'Mock Service',
@@ -154,6 +185,13 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
         disabledDays.isNotEmpty &&
         disabledDays.contains(7)) {
       print('🔴 Sunday disabled - returning early');
+      return;
+    }
+
+    final earliestBookable =
+        DateTime.now().add(Duration(minutes: bookingLeadTimeMinutes));
+    if (newBooking.bookingStart.isBefore(earliestBookable)) {
+      print('🔴 Lead time restriction - earliest booking is $earliestBookable');
       return;
     }
 
@@ -312,6 +350,7 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
 
     final List<DateTimeRange> busySlots = [];
     final now = DateTime.now();
+    final earliestBookable = now.add(Duration(minutes: bookingLeadTimeMinutes));
 
     if (response is List) {
       for (final slot in response) {
@@ -326,8 +365,9 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
           );
           final slotEnd = slotStart.add(const Duration(minutes: 15));
 
-          // Mark as busy (red) if unavailable from API OR if slot is in the past
-          if (slot['available'] == false || slotStart.isBefore(now)) {
+          // Mark as busy if unavailable from API, past, or within lead-time window.
+          if (slot['available'] == false ||
+              slotStart.isBefore(earliestBookable)) {
             busySlots.add(DateTimeRange(start: slotStart, end: slotEnd));
             // print( 'Busy/grey slot: ${slotStart.toIso8601String()} - ${slotEnd.toIso8601String()}');
           }
@@ -366,11 +406,13 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
     final EdgeInsetsGeometry zeroPadding = EdgeInsets.zero;
     final EdgeInsetsGeometry defaultPadding = const EdgeInsets.all(16.0);
     final EdgeInsetsGeometry padding = isMobile ? zeroPadding : defaultPadding;
-    final EdgeInsetsGeometry margin = isMobile ? EdgeInsets.zero : EdgeInsets.zero;
+    final EdgeInsetsGeometry margin =
+        isMobile ? EdgeInsets.zero : EdgeInsets.zero;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Booking Calendar', style: TextStyle(color: Colors.white)),
+        title: const Text('Booking Calendar',
+            style: TextStyle(color: Colors.white)),
         backgroundColor: color,
       ),
       body: isSettingsLoaded

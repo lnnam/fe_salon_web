@@ -24,6 +24,7 @@ Future<void> saveBooking(
   String serviceName,
   String customerEmail,
   String customerPhone,
+  int numbooking,
 ) async {
   appLog('\n╔════════════════════════════════════════════════╗');
   appLog('║  🔄 SAVE BOOKING - SUBMITTING DATA TO API     ║');
@@ -49,6 +50,7 @@ Future<void> saveBooking(
   appLog('   time: $bookingTime');
   appLog('─────────────────────────────────────────────────');
   appLog('📝 NOTES: ${note.isEmpty ? "(empty)" : note}');
+  appLog('👥 NUMBER PERSON: $numbooking');
   appLog('╚════════════════════════════════════════════════╝\n');
 
   setLoading(true);
@@ -66,6 +68,7 @@ Future<void> saveBooking(
     serviceName,
     customerEmail,
     customerPhone,
+    numbooking,
   );
 
   if (result != null) {
@@ -158,7 +161,7 @@ Future<void> saveBooking(
             children: [
               Icon(Icons.reviews, color: Colors.amber[800], size: 28),
               const SizedBox(width: 10),
-              const Text('Enjoyed your visit?'),
+              const Text('Your request sent'),
             ],
           ),
           content: Column(

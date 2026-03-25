@@ -26,6 +26,7 @@ class SummaryPage extends StatefulWidget {
 class _SummaryPageState extends State<SummaryPage> {
   bool isLoading = false;
   String note = '';
+  int numbooking = 1;
 
   late String customerKey;
   late String serviceKey;
@@ -128,6 +129,7 @@ class _SummaryPageState extends State<SummaryPage> {
       staffName = booking.staffname;
       serviceName = booking.servicename;
       note = booking.note;
+      numbooking = int.tryParse(booking.numbooked) ?? 1;
 
       print('=== SUMMARY INIT - GETTING EMAIL/PHONE ===');
       // Get email and phone from MyAppState first (always loaded), then BookingProvider
@@ -171,6 +173,11 @@ class _SummaryPageState extends State<SummaryPage> {
       staffName = bookingDetails['staffname'] ?? 'Unknown';
       serviceName = bookingDetails['servicename'] ?? 'Unknown';
       note = bookingDetails['note'] ?? '';
+      numbooking = int.tryParse((bookingDetails['numbooking'] ??
+                  bookingDetails['numbooked'] ??
+                  '1')
+              .toString()) ??
+          1;
 
       // For logged-in customers, get email/phone from customer details
       // For guest bookings, use guestemail/guestphone
@@ -275,6 +282,7 @@ class _SummaryPageState extends State<SummaryPage> {
     print('bookingTime: $bookingTime');
     print('bookingkey: $bookingkey');
     print('note: $note');
+    print('numbooking: $numbooking');
     print('=======================');
 
     return Scaffold(
@@ -427,6 +435,32 @@ class _SummaryPageState extends State<SummaryPage> {
                         },
                       ),
                       const SizedBox(height: 12),
+                      DropdownButtonFormField<int>(
+                        value: numbooking,
+                        decoration: const InputDecoration(
+                          labelText: 'How many person for this booking',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                                color: Color(COLOR_PRIMARY), width: 2),
+                          ),
+                        ),
+                        items: List.generate(
+                          5,
+                          (index) => DropdownMenuItem<int>(
+                            value: index + 1,
+                            child: Text('${index + 1}'),
+                          ),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            numbooking = value ?? 1;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
                       const Text(
                         'Note:',
                         style: TextStyle(
@@ -465,14 +499,6 @@ class _SummaryPageState extends State<SummaryPage> {
                             onPressed: isLoading
                                 ? null
                                 : () {
-                                    print('=== SUMMARY PAGE - BEFORE SAVE ===');
-                                    print('customerKey: $customerKey');
-                                    print('customerEmail: $customerEmail');
-                                    print('customerPhone: $customerPhone');
-                                    print('serviceKey: $serviceKey');
-                                    print('staffKey: $staffKey');
-                                    print('================================');
-
                                     saveBooking(
                                       context,
                                       bookingkey,
@@ -489,6 +515,7 @@ class _SummaryPageState extends State<SummaryPage> {
                                       serviceName,
                                       customerEmail,
                                       customerPhone,
+                                      numbooking,
                                     );
                                   },
                             style: ElevatedButton.styleFrom(
