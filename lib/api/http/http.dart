@@ -599,7 +599,7 @@ class MyHttp {
   Future<List<Map<String, dynamic>>> fetchAvailability({
     required DateTime date,
     String staffKey = 'any',
-    int serviceDuration = 45,
+    int serviceKey = 0,
   }) async {
     try {
       // Try to get customer token first
@@ -617,7 +617,7 @@ class MyHttp {
 
       final String formattedDate = date.toIso8601String().substring(0, 10);
       final Uri uri = Uri.parse(
-        '${AppConfig.api_url_booking_getavailability}?date=$formattedDate&staffkey=$staffKey&service_duration=$serviceDuration',
+        '${AppConfig.api_url_booking_getavailability}?date=$formattedDate&staffkey=$staffKey&servicekey=$serviceKey',
       );
 
       final response = await http.get(
@@ -630,6 +630,7 @@ class MyHttp {
 
       if (response.statusCode == 200) {
         final dynamic data = jsonDecode(response.body);
+        print('fetchAvailability data: $data');
 
         // If the response is a List, return as before
         if (data is List) {

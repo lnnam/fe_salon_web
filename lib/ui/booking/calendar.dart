@@ -65,18 +65,6 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
     _fetchBookingSettings();
   }
 
-  /* void initState() {
-    super.initState();
-    mockBookingService = BookingService(
-        serviceName: 'Mock Service',
-        serviceDuration: 15,
-        bookingEnd: DateTime(now.year, now.month, now.day, 18, 0),
-        bookingStart: DateTime(now.year, now.month, now.day, 9, 0));
-
-    // Fetch booking settings from backend
-    _fetchBookingSettings();
-  } */
-
   Future<void> _fetchBookingSettings() async {
     try {
       final response = await apiManager.fetchBookingSettings();
@@ -336,11 +324,13 @@ class _BookingCalendarPageState extends State<BookingCalendarPage> {
     final bookingProvider =
         Provider.of<BookingProvider>(context, listen: false);
     final staffKey = bookingProvider.bookingDetails['staffkey'] ?? 'any';
+    final serviceKeyRaw = bookingProvider.bookingDetails['servicekey'];
+    final serviceKey = int.tryParse(serviceKeyRaw?.toString() ?? '') ?? 0;
 
     final dynamic response = await apiManager.fetchAvailability(
       date: start,
       staffKey: staffKey,
-      serviceDuration: 45,
+      serviceKey: serviceKey,
     );
 
     // Print first and last time slots
