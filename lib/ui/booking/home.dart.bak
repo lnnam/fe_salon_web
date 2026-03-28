@@ -722,7 +722,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       });
                     }
                   },
-                  child: const Text('Save Member'),
+                  child: const Text('Save '),
                 ),
               ],
             );

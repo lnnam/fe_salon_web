@@ -292,7 +292,7 @@ class _CustomerSetMemberPageState extends State<CustomerSetMemberPage> {
                           width: 20,
                           child: CircularProgressIndicator(
                               color: Colors.white, strokeWidth: 2))
-                      : const Text('Save Member'),
+                      : const Text('Save'),
                 ),
               ],
             ),

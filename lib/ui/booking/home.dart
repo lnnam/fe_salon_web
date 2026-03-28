@@ -699,40 +699,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               },
             ),
           ),
-          const SizedBox(height: 24),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton(
-              onPressed: () {
-                final bookingProvider =
-                    Provider.of<BookingProvider>(context, listen: false);
-                bookingProvider.resetBooking();
-                bookingProvider.setEditMode(false);
-                if (_currentCustomer != null) {
-                  bookingProvider.setCustomerDetails({
-                    'pkey': _currentCustomer!.customerkey,
-                    'customerkey': _currentCustomer!.customerkey,
-                    'fullname': _currentCustomer!.fullname,
-                    'email': _currentCustomer!.email,
-                    'phone': _currentCustomer!.phone,
-                  });
-                }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ServicePage()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: color,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
-          ),
         ],
       ),
     );
