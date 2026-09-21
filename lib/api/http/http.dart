@@ -628,6 +628,8 @@ class MyHttp {
         },
       );
 
+      print(uri.toString());
+
       if (response.statusCode == 200) {
         final dynamic data = jsonDecode(response.body);
         print('fetchAvailability data: $data');

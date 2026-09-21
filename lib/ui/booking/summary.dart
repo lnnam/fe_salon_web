@@ -435,32 +435,6 @@ class _SummaryPageState extends State<SummaryPage> {
                         },
                       ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<int>(
-                        value: numbooking,
-                        decoration: const InputDecoration(
-                          labelText: 'How many person for this booking',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                                color: Color(COLOR_PRIMARY), width: 2),
-                          ),
-                        ),
-                        items: List.generate(
-                          5,
-                          (index) => DropdownMenuItem<int>(
-                            value: index + 1,
-                            child: Text('${index + 1}'),
-                          ),
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            numbooking = value ?? 1;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 12),
                       const Text(
                         'Note:',
                         style: TextStyle(
