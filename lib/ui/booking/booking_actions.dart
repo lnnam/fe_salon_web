@@ -6,7 +6,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'home.dart';
 import 'package:salonappweb/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 
 Future<void> saveBooking(
@@ -144,7 +143,6 @@ Future<void> saveBooking(
 
     setLoading(false);
 
-    // Show review invitation popup
     await showDialog(
       context: context,
       barrierDismissible: false,
@@ -159,110 +157,32 @@ Future<void> saveBooking(
           backgroundColor: Colors.white,
           title: Row(
             children: [
-              Icon(Icons.reviews, color: Colors.amber[800], size: 28),
+              Icon(Icons.check_circle, color: Colors.green[700], size: 28),
               const SizedBox(width: 10),
-              const Text('Your request sent'),
+              const Text('Booking Submitted'),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Would you like to leave us a review? Your feedback helps us improve and grow!',
-                style: TextStyle(fontSize: 15, color: Colors.black87),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    icon: Image.asset(
-                      'assets/icons/google_logo.png',
-                      width: 22,
-                      height: 22,
-                    ),
-                    label: const Text('Google'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black87,
-                      elevation: 1,
-                      side: const BorderSide(color: Colors.grey),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                      final Uri url =
-                          Uri.parse('https://g.page/r/CbU-bofIjzfWEAg/review');
-                      try {
-                        await launchUrl(
-                          url,
-                          webOnlyWindowName: '_blank',
-                          mode: LaunchMode.platformDefault,
-                        );
-                      } catch (e) {
-                        print('Could not launch Google review: $e');
-                      }
-                    },
-                  ),
-                  ElevatedButton.icon(
-                    icon: Image.asset(
-                      'assets/icons/facebook_logo.png',
-                      width: 22,
-                      height: 22,
-                    ),
-                    label: const Text('Facebook'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF1877F3),
-                      foregroundColor: Colors.white,
-                      elevation: 1,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                      final Uri url = Uri.parse(
-                          'https://www.facebook.com/greatyarmouthnails');
-                      try {
-                        await launchUrl(
-                          url,
-                          webOnlyWindowName: '_blank',
-                          mode: LaunchMode.platformDefault,
-                        );
-                      } catch (e) {
-                        print('Could not launch Facebook review: $e');
-                      }
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text(
-                    'I’ll do it later.',
-                    style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
+          content: const Text(
+            'Your booking request has been sent to the salon and is awaiting confirmation.',
+            style: TextStyle(fontSize: 15, color: Colors.black87),
           ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'OK',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
         );
       },
     );
 
-    // After dialog is closed, navigate to home
-    Navigator.pushAndRemoveUntil(
-      context,
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) => const CustomerHomeScreen(),
       ),
